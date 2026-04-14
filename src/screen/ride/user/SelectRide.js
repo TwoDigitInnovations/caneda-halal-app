@@ -35,7 +35,7 @@ import {navigate} from '../../../../navigationRef';
 import {GetApi, Post} from '../../../Assets/Helpers/Service';
 import {LoadContext, ToastContext, UserContext} from '../../../../App';
 import {PERMISSIONS} from 'react-native-permissions';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import MapViewDirections from 'react-native-maps-directions';
 import LocationAutocomplete from '../../../Assets/Component/LocationAutocomplete';
 import {

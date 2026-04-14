@@ -1,14 +1,16 @@
-// const prodUrl = 'http://192.168.0.187:3000/v1/api/';
+import { GOOGLE_KEY, MASJID_KEY, PROD_TOKEN as _PROD_TOKEN } from './keys';
+
+const prodUrl = 'http://192.168.0.215:3000/v1/api/';
 // const prodUrl = 'http://192.168.1.102:3000/v1/api/';
 //  const prodUrl = 'http://192.168.81.1:3000/v1/api/';
 //  const prodUrl = 'http://10.80.19.103:3000/v1/api/';
-const prodUrl = 'https://api.chmp.world/v1/api/';
+// const prodUrl = 'https://api.chmp.world/v1/api/';
 
 let apiUrl = prodUrl;
-export const Googlekey = 'AIzaSyDB1XajMkT3NriuGjhZN2giNsitA6cuITE'
-export const Masjid_key = 'OgeK2JE4CgiRAnqwWSjBlpesMEY56onRRlFuouiaF0wE93XV';
+export const Googlekey = GOOGLE_KEY;
+export const Masjid_key = MASJID_KEY;
 export const Currency = 'CA$'
-export const PROD_TOKEN = 'sand_IHJVTLvl1ATsXgR4FxqLcdvAPcu1+M/SoaEQRDz6Tj0='
+export const PROD_TOKEN = _PROD_TOKEN;
 
 const Constants = {
   baseUrl: apiUrl,

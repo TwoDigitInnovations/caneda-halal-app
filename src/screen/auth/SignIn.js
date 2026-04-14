@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DriverHeader from '../../Assets/Component/DriverHeader';
 import axios from 'axios';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
-import CountryPicker from 'react-native-country-picker-modal';
+import CountryPicker from '../../Assets/Component/CountryPickerModal';
 import { useTranslation } from 'react-i18next';
 import LanguageChange from '../../Assets/Component/LanguageChange';
 

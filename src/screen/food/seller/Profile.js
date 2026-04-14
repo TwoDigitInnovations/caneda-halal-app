@@ -22,7 +22,7 @@ import {FoodSellerContext, LoadContext, ToastContext} from '../../../../App';
 import {ApiFormData, GetApi, Post} from '../../../Assets/Helpers/Service';
 import LocationDropdown from '../../../Assets/Component/LocationDropdown';
 import {BackIcon, EditIcon, Upload2Icon, UploadIcon} from '../../../../Theme';
-import {keepLocalCopy, pick} from '@react-native-documents/picker';
+
 import {useTranslation} from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
 

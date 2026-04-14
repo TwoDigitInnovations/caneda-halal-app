@@ -29,7 +29,7 @@ import {
   PERMISSIONS,
   requestLocationAccuracy,
 } from 'react-native-permissions';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import GetCurrentAddressByLatLong from '../../../Assets/Component/GetCurrentAddressByLatLong';
 import {BackIcon, LocationIcon} from '../../../../Theme';
 import { useTranslation } from 'react-i18next';
@@ -198,7 +198,7 @@ console.log('location',location)
                 console.log(error.code, error.message);
                 //   return error;
               },
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+              {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
             );
           }
         });
@@ -237,7 +237,7 @@ console.log('location',location)
               console.log(error.code, error.message);
               //   return error;
             },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+            {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
           );
         } else {
           console.log('location permission denied');

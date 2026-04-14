@@ -29,7 +29,7 @@ import {
 } from '../../../../App';
 import {useIsFocused} from '@react-navigation/native';
 import LocationDropdown from '../../../Assets/Component/LocationDropdown';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import GetCurrentAddressByLatLong from '../../../Assets/Component/GetCurrentAddressByLatLong';
 import {Dropdown} from 'react-native-element-dropdown';
 import { PERMISSIONS, request } from 'react-native-permissions';
@@ -386,7 +386,7 @@ const Driverform = props => {
                 console.log(error.code, error.message);
                 //   return error;
               },
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+              {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
             );
           }
         });
@@ -428,7 +428,7 @@ const Driverform = props => {
               console.log(error.code, error.message);
               //   return error;
             },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+            {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
           );
         } else {
           console.log('location permission denied');

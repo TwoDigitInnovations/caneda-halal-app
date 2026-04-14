@@ -30,7 +30,7 @@ import {
 } from '../../../App';
 import {useIsFocused} from '@react-navigation/native';
 import LocationDropdown from '../../Assets/Component/LocationDropdown';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import GetCurrentAddressByLatLong from '../../Assets/Component/GetCurrentAddressByLatLong';
 import {RadioButton} from 'react-native-paper';
 import {Dropdown} from 'react-native-element-dropdown';
@@ -395,7 +395,7 @@ useEffect(() => {
                 console.log(error.code, error.message);
                 //   return error;
               },
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+              {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
             );
           }
         });
@@ -437,7 +437,7 @@ useEffect(() => {
               console.log(error.code, error.message);
               //   return error;
             },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+            {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
           );
         } else {
           console.log('location permission denied');

@@ -35,8 +35,8 @@ import {
 import {useIsFocused} from '@react-navigation/native';
 import LocationDropdown from '../../../Assets/Component/LocationDropdown';
 import GetCurrentAddressByLatLong from '../../../Assets/Component/GetCurrentAddressByLatLong';
-import Geolocation from 'react-native-geolocation-service';
-import { keepLocalCopy, pick } from '@react-native-documents/picker';
+import Geolocation from '@react-native-community/geolocation';
+
 import { PERMISSIONS, request } from 'react-native-permissions';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -341,7 +341,7 @@ if (selendhour===""||selendmin===""||selendtype===""){
                 console.log(error.code, error.message);
                 //   return error;
               },
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+              {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
             );
           }
         });
@@ -383,7 +383,7 @@ if (selendhour===""||selendmin===""||selendtype===""){
               console.log(error.code, error.message);
               //   return error;
             },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+            {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
           );
         } else {
           console.log('location permission denied');

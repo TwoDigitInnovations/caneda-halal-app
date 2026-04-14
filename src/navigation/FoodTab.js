@@ -1,7 +1,15 @@
-import React, {useCallback, useContext, useRef} from 'react';
-import {Platform, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {CartIcon,Home2Icon,  Profile2Icon, ShopIcon } from '../../Theme';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Cart2Icon, Home2Icon, Profile2Icon, ProfileIcon, ShopIcon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
 import Home from '../screen/food/user/Home';
 import Cart from '../screen/food/user/Cart';
@@ -10,148 +18,234 @@ import { useTranslation } from 'react-i18next';
 import { FoodCartContext } from '../../App';
 import FoodShops from '../screen/food/user/FoodShops';
 
-
-
 const Tab = createBottomTabNavigator();
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const TAB_BAR_H = Platform.OS === 'ios' ? 90 : 70;
+const H_PADDING = 16;
+const TAB_WIDTH = (SCREEN_WIDTH - H_PADDING * 2) / 4;
 
-export const  Foodtab=()=>{
- const { t } = useTranslation();
- const [foodcartdetail, setfoodcartdetail] = useContext(FoodCartContext);
+// Width of the pill — active tab shows icon + label side by side
+// Inactive tabs show only icon, so they stay narrow
+const PILL_WIDTH = 110; // adjust to fit your longest label
+const PILL_HEIGHT = 48;
+const PILL_TOP = (TAB_BAR_H - (Platform.OS === 'ios' ? 20 : 0) - PILL_HEIGHT) / 2;
+
+export const Foodtab = () => {
+  const { t } = useTranslation();
+  const [foodcartdetail] = useContext(FoodCartContext);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
   const TabArr = [
     {
-      iconActive: <Home2Icon color={Constants.dark_green} height={30} width={30} />,
-      iconInActive: <Home2Icon color={Constants.tabgrey} height={30} width={30} />,
+      iconActive: (color) => <Home2Icon color={color} height={24} width={24} />,
       component: Home,
       routeName: 'Home',
       name: t('Home'),
     },
     {
-      iconActive: <ShopIcon color={Constants.dark_green} height={30} width={30} />,
-      iconInActive: <ShopIcon color={Constants.tabgrey} height={30} width={30} />,
+      iconActive: (color) => <ShopIcon color={color} height={24} width={24} />,
       component: FoodShops,
       routeName: 'FoodShops',
-      name: t('Shops'),
+      name: t('Restaurants'),
     },
     {
-      iconActive: <CartIcon color={Constants.dark_green} height={30} width={30} />,
-      iconInActive: <CartIcon color={Constants.tabgrey} height={30} width={30} />,
+      iconActive: (color) => <Cart2Icon color={color} height={24} width={24} />,
       component: Cart,
       routeName: 'Cart',
       name: t('Cart'),
     },
     {
-        iconActive: <Profile2Icon color={Constants.dark_green} height={30} width={30} />,
-        iconInActive: <Profile2Icon color={Constants.tabgrey} height={30} width={30} />,
-        component: Profile,
-        routeName: 'Profile',
-        name: t('Profile'),
+      iconActive: (color) => <ProfileIcon color={color} height={20} width={20} />,
+      component: Profile,
+      routeName: 'Profile',
+      name: t('Profile'),
     },
-   
   ];
 
-  const TabButton = useCallback(
-    ({accessibilityState, onPress, onclick, item,index}) => {
-      const cartCount = foodcartdetail?.length || 0;
-      const isSelected = accessibilityState?.selected;
-      return (
-        <View style={styles.tabBtnView}>
-         <View style={[index ===1 && {position:'relative'}]}>
-          <TouchableOpacity
-            onPress={onclick ? onclick : onPress}
+  const animatePill = (index) => {
+    Animated.spring(slideAnim, {
+      toValue: index,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 55,
+    }).start();
+  };
+
+  // Pill slides to center of active tab, then offsets left so it starts from icon
+  const pillTranslateX = slideAnim.interpolate({
+    inputRange: [0, 1, 2, 3],
+    outputRange: [0, 1, 2, 3].map(
+      (i) => H_PADDING + i * TAB_WIDTH + (TAB_WIDTH - PILL_WIDTH) / 2
+    ),
+  });
+
+  const CustomTabBar = ({ state, navigation }) => {
+    useEffect(() => {
+      animatePill(state.index);
+    }, [state.index]);
+
+    const cartCount = foodcartdetail?.length || 0;
+
+    return (
+      <View style={styles.tabBarOuter}>
+        <View style={styles.tabBarInner}>
+
+          {/* Animated sliding pill */}
+          <Animated.View
             style={[
-              styles.tabBtn
-            ]}>
-            {isSelected ? item.iconActive : item.iconInActive}
-            
-          </TouchableOpacity>
-          { index ===2&&cartCount>0&&<TouchableOpacity style={styles.badge} onPress={onclick ? onclick : onPress}>
+              styles.pill,
+              {
+                width: PILL_WIDTH,
+                height: PILL_HEIGHT,
+                top: PILL_TOP,
+                transform: [{ translateX: pillTranslateX }],
+              },
+            ]}
+          />
+
+          {/* Tab items */}
+          {TabArr.map((item, index) => {
+            const isSelected = state.index === index;
+            const route = state.routes[index];
+            const iconColor = isSelected ? Constants.dark_green : Constants.tabgrey;
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.tabItem}
+                activeOpacity={0.85}
+                onPress={() => {
+                  const event = navigation.emit({
+                    type: 'tabPress',
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
+                  if (!isSelected && !event.defaultPrevented) {
+                    navigation.navigate(route.name);
+                  }
+                }}>
+
+                {isSelected ? (
+                  // ── Active: icon + label in a ROW ──
+                  <View style={styles.activeRow}>
+                    <View style={styles.iconBox}>
+                      {item.iconActive(Constants.dark_green)}
+                      {/* Cart badge */}
+                      {index === 2 && cartCount > 0 && (
+                        <View style={styles.badge}>
                           <Text style={styles.badgeText}>
                             {cartCount > 99 ? '99+' : cartCount}
                           </Text>
-                        </TouchableOpacity>}
                         </View>
-          <Text style={[styles.tabtxt,{color:isSelected?Constants.dark_green:Constants.black}]}>{item.name}</Text>
+                      )}
+                    </View>
+                    <Text style={styles.activeLabelText}>{item.name}</Text>
+                  </View>
+                ) : (
+                  // ── Inactive: icon only ──
+                  <View style={styles.iconBox}>
+                    {item.iconActive(Constants.tabgrey)}
+                    {index === 2 && cartCount > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>
+                          {cartCount > 99 ? '99+' : cartCount}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={[styles.activeLabelText,{marginBottom:-10,marginTop:5}]}>{item.name}</Text>
+                  </View>
+                )}
+
+              </TouchableOpacity>
+            );
+          })}
+
         </View>
-      );
-    },
-    [foodcartdetail],
-  );
+      </View>
+    );
+  };
 
   return (
-    
     <Tab.Navigator
-      screenOptions={{
-        tabBarShowLabel: false,
-        headerShown: false,
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: {
-          position: 'absolute',
-          width: '100%',
-          height: Platform.OS==='ios'?90: 70,
-          backgroundColor: Constants.white,
-          borderTopRightRadius: 15,
-          borderTopLeftRadius: 15,
-          borderTopWidth: 0,
-        //   paddingTop: Platform.OS === 'ios' ? 10 : 0,
-        },
-      }}>
-      {TabArr.map((item, index) => {
-        return (
-          <Tab.Screen
-            key={index}
-            name={item.routeName}
-            component={item.component}
-           
-            options={{
-              tabBarShowLabel: false,
-              tabBarButton: props => (
-                <TabButton {...props} item={item} index={index} />
-              ),
-            }}
-          />
-        );
-      })}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}>
+      {TabArr.map((item, index) => (
+        <Tab.Screen key={index} name={item.routeName} component={item.component} />
+      ))}
     </Tab.Navigator>
-    
   );
-  
-}
+};
 
 const styles = StyleSheet.create({
-  tabBtnView: {
-    // backgroundColor: isSelected ? 'blue' : '#FFFF',
+  tabBarOuter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: TAB_BAR_H,
+    backgroundColor: Constants.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 12,
+  },
+  tabBarInner: {
+    flexDirection: 'row',
+    paddingHorizontal: H_PADDING,
+    flex: 1,
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+  },
+  pill: {
+    position: 'absolute',
+    backgroundColor: '#E8F5E9',   // swap with Constants.light_green if available
+    borderRadius: 50,
+  },
+  tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    height: '100%',
+    zIndex: 1,
   },
-  tabBtn: {
-    height: 40,
-    width: 40,
-    borderRadius: 15,
+
+  // Active state — row layout
+  activeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  activeLabelText: {
+    color: Constants.dark_green,
+    fontFamily: FONTS.Medium,
+    fontSize: 10,
+  },
+
+  // Icon wrapper (for badge positioning)
+  iconBox: {
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabBtnActive: {
-    backgroundColor: Constants.white,
-  },
-  tabBtnInActive: {
-    backgroundColor: 'white',
-  },
-  tabtxt:{
-    color:Constants.black,
-    // fontWeight:'400',
-    fontFamily:FONTS.Medium,
-  },
+
+  // Badge
   badge: {
     position: 'absolute',
-    top: 1,
-    right: -2,
+    top: -4,
+    right: -6,
     backgroundColor: Constants.normal_green,
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 3,
   },
   badgeText: {
     color: 'white',

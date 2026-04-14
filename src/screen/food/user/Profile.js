@@ -54,11 +54,11 @@ const Profile = props => {
   const [jobtype, setjobtype] = useState('main');
 
   const IsFocused=useIsFocused()
-  useEffect(() => {
-    if (IsFocused) {
-      getlastorder();
-    }
-  }, [IsFocused]);
+  // useEffect(() => {
+  //   if (IsFocused) {
+  //     getlastorder();
+  //   }
+  // }, [IsFocused]);
 
 const [selectLanguage, setSelectLanguage] = useState('English');
       const { t } = useTranslation();
@@ -234,7 +234,7 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             <Text style={styles.protxt2}>{fooduserProfile?.phone?fooduserProfile?.phone:user?.phone}</Text>
           </View>
         </TouchableOpacity>
-        <View style={styles.firstbox}>
+        {/* <View style={styles.firstbox}>
           <View style={styles.covline}>
             <Text style={styles.categorytxt}>{t("My Orders")}</Text>
             <Text style={styles.seealltxt} onPress={()=>navigate('FoodOrders')}>{t("See all")}</Text>
@@ -267,7 +267,7 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             </View>
           </View>
           </View>:<Text style={styles.nrptxt}>{t("No order Place Yet")}</Text>}
-        </View>
+        </View> */}
         <View style={[styles.horline, {marginHorizontal: 20}]}></View>
         <View
           style={{
@@ -281,12 +281,28 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => navigate('FoodAccount')}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <ProfileIcon height={20} width={20} color={Constants.black}/>
+                <ProfileIcon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{t('Personal Data')}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
+              height={15}
+              width={15}
+              style={styles.aliself}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.box]}
+            onPress={()=>navigate('FoodOrders')}>
+            <View style={styles.btmboxfirpart}>
+              <View style={styles.iconcov}>
+                <ProfileIcon height={20} width={20} color={Constants.normal_green}/>
+              </View>
+              <Text style={styles.protxt}>{t('My Orders')}</Text>
+            </View>
+            <RightArrow
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -297,12 +313,12 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => getDriverProfile()}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <DriverIcon height={20} width={20} color={Constants.black}/>
+                <DriverIcon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{profileStatus?.DELIVERYRIDER?t('Go to Delivery Flow'):t('Become a Delivery Rider')}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -313,12 +329,12 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => getProfile()}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <SellerIcon height={20} width={20} color={Constants.black}/>
+                <SellerIcon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{profileStatus?.FOODSELLER?t('Go to Seller Dashboard'):t('Become a Seller')}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -329,12 +345,12 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => navigate('FoodUserNotification')}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <Notification2Icon height={20} width={20} color={Constants.black}/>
+                <Notification2Icon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{t("Notification")}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -345,12 +361,12 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => navigate('FavoriteFoods')}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <FavborIcon color={Constants.black} height={20} width={20}/>
+                <FavborIcon color={Constants.normal_green} height={20} width={20}/>
               </View>
               <Text style={styles.protxt}>{t("Favorite Foods")}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -361,14 +377,14 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={()=>langRef.current.show()}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <LanguageIcon height={20} width={20} color={Constants.black} />
+                <LanguageIcon height={20} width={20} color={Constants.normal_green} />
               </View>
               <Text style={styles.protxt}>{t("Language")}</Text>
             </View>
             <View style={styles.btmboxfirpart}>
               <Text style={styles.protxt3}>{selectLanguage}</Text>
               <RightArrow
-                color={Constants.black}
+                color={Constants.normal_green}
                 height={15}
                 width={15}
                 style={styles.aliself}
@@ -380,12 +396,12 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => Privacy()}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <PrivacyIcon height={20} width={20} color={Constants.black}/>
+                <PrivacyIcon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{t("Privacy Policy")}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -396,12 +412,12 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => Term()}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <TermIcon height={20} width={20} color={Constants.black}/>
+                <TermIcon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{t("Terms and Conditions")}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -413,12 +429,12 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => Help()}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <SupportIcon height={20} width={20} color={Constants.black}/>
+                <SupportIcon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{t("Help Center")}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -429,12 +445,12 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={() => setModalVisible2(true)}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <DeleteIcon height={20} width={20} color={Constants.black} />
+                <DeleteIcon height={20} width={20} color={Constants.normal_green} />
               </View>
               <Text style={[styles.protxt,{width:'70%'}]}>{t("Request Account Deletion")}</Text>
             </View>
             <RightArrow
-              color={Constants.black}
+              color={Constants.normal_green}
               height={15}
               width={15}
               style={styles.aliself}
@@ -591,7 +607,7 @@ const styles = StyleSheet.create({
   },
   headtxt: {
     fontSize: 16,
-    color: Constants.black,
+    color: Constants.normal_green,
     fontFamily: FONTS.SemiBold,
     textAlign: 'center',
     marginTop: 10,
@@ -842,8 +858,8 @@ const styles = StyleSheet.create({
   },
   partheadtxt: {
     fontSize: 14,
-    color: Constants.customgrey2,
-    fontFamily: FONTS.Medium,
+    color: Constants.normal_green,
+    fontFamily: FONTS.SemiBold,
     marginTop: 20,
     marginLeft: 20,
   },

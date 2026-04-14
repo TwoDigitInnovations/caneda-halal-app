@@ -1,31 +1,23 @@
 import React, {useEffect, useState, createContext, useRef} from 'react';
 import {
-  AppState,
-  Modal,
   PermissionsAndroid,
   Platform,
   StatusBar,
   StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
 } from 'react-native';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Navigation from './src/navigation';
-// import CustomToaster from './src/Assets/Component/CustomToaster';
 import Constants, {FONTS} from './src/Assets/Helpers/constant';
 import {OneSignal} from 'react-native-onesignal';
 import {PERMISSIONS, request} from 'react-native-permissions';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import Spinner from './src/Assets/Component/Spinner';
 import 'react-native-gesture-handler';
 import GetCurrentAddressByLatLong from './src/Assets/Component/GetCurrentAddressByLatLong';
-// import ToastManager, {Toast} from 'toastify-react-native';
 import Toast from 'react-native-toast-message';
 import i18n from './i18n';
 import {StripeProvider} from '@stripe/stripe-react-native';
-import SplashScreen from 'react-native-splash-screen';
 import {GetApi, Post} from './src/Assets/Helpers/Service';
 import CuurentLocation from './src/Assets/Component/CuurentLocation';
 
@@ -86,7 +78,6 @@ const App = () => {
   }, [OneSignal]);
 
   useEffect(() => {
-    SplashScreen.hide();
     setInitialRoute();
     checkLng();
     CustomCurrentLocation();
@@ -133,7 +124,7 @@ const App = () => {
                 console.log(error.code, error.message);
                 //   return error;
               },
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+              {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
             );
           }
         });
@@ -162,7 +153,7 @@ const App = () => {
               console.log(error.code, error.message);
               //   return error;
             },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+            {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
           );
         } else {
           console.log('location permission denied');
@@ -336,13 +327,6 @@ const App = () => {
                                               color={'#fff'}
                                               visible={loading}
                                             />
-                                            {/* <CustomToaster
-                                    color={Constants.white}
-                                    backgroundColor={Constants.dark_green}
-                                    timeout={4000}
-                                    toast={toast}
-                                    setToast={setToast}
-                                  /> */}
                                             <StatusBar
                                               barStyle="dark-content"
                                               backgroundColor={'white'}

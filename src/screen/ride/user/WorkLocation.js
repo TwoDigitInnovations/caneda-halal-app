@@ -32,7 +32,7 @@ import ActionSheet from 'react-native-actions-sheet';
 import {BackIcon, Currentlocation} from '../../../../Theme';
 import {goBack, navigate} from '../../../../navigationRef';
 import GetCurrentAddressByLatLong from '../../../Assets/Component/GetCurrentAddressByLatLong';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import {check, PERMISSIONS, request, RESULTS} from 'react-native-permissions';
 import {LoadContext, ProfileContext, ToastContext} from '../../../../App';
 import {GetApi, Post} from '../../../Assets/Helpers/Service';
@@ -113,7 +113,7 @@ const WorkLocation = () => {
             error => {
               console.log(error.code, error.message);
             },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+            {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
           );
         } else if (permission === RESULTS.DENIED) {
           const result = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
@@ -148,7 +148,7 @@ const WorkLocation = () => {
               error => {
                 console.log(error.code, error.message);
               },
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+              {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
             );
           }
         } else if (permission === RESULTS.BLOCKED) {
@@ -197,7 +197,7 @@ const WorkLocation = () => {
             error => {
               console.log(error.code, error.message);
             },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+            {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
           );
         } else {
           const granted = await PermissionsAndroid.request(
@@ -235,7 +235,7 @@ const WorkLocation = () => {
                 setLoading(false);
                 console.log(error.code, error.message);
               },
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+              {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
             );
           } else if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
             setLoading(false);

@@ -1,116 +1,180 @@
 import {
   Animated,
   Dimensions,
+  Image,
   ImageBackground,
-  SafeAreaView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import React, {useEffect, useRef, useState} from 'react';
-import Constants, {FONTS} from '../../../Assets/Helpers/constant';
-import {RightArrow, RightArrow2} from '../../../../Theme';
-import {navigate} from '../../../../navigationRef';
-import {AnimatedCircularProgress} from 'react-native-circular-progress';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTranslation } from 'react-i18next';
+import {useTranslation} from 'react-i18next';
+import Constants, { FONTS } from '../../../Assets/Helpers/constant';
+import { navigate } from '../../../../navigationRef';
 
-const {width} = Dimensions.get('window');
-// const BOX_WIDTH = width * 0.6;
+const {width, height} = Dimensions.get('window');
 
 const DATA = [
   {
-    title: 'We serve incomparable delicacies',
-    desc: 'All the best restaurants with their top menu waiting for you, they can’t wait for your order!!',
+    image: require('../../../Assets/Images/onboarding1.png'),
+    title: 'Find Food You Love',
+    desc: 'Indulge in the exquisite flavors of our culinary masterpiece – a symphony of succulent grilled chicken, nestled on a bed of perfectly seasoned quinoa and adorned with a medley of vibrant, roasted vegetables.',
   },
   {
-    title: 'Fast delivery at your doorstep',
-    desc: 'We ensure fast delivery from the best local restaurants near you.',
+    image: require('../../../Assets/Images/onboarding2.png'),
+    title: 'Fast Delivery',
+    desc: 'The dish is artfully drizzled with a velvety balsamic glaze. Each bite is a journey through a culinary wonderland, where freshness meets finesse.',
   },
   {
-    title: 'Easy payment options',
-    desc: 'Multiple secure and fast payment methods to choose from.',
+    image: require('../../../Assets/Images/onboarding3.png'),
+    title: 'Easy Payment',
+    desc: 'Multiple secure and fast payment methods to choose from. Pay seamlessly and enjoy your meal without any hassle.',
   },
 ];
 
-const Onboarding = () => {
-  const { t } = useTranslation();
-  const [index, setIndex] = useState(0);
-  //   const translateX = useRef(new Animated.Value(BOX_WIDTH)).current;
-  const BOX_WIDTH = width * 0.80 - 40;
-  const translateX = useRef(new Animated.Value(0)).current;
 
-  const handleNext = async() => {
+const Onboarding = () => {
+  const {t} = useTranslation();
+  const [index, setIndex] = useState(0);
+
+  // Strip slides horizontally
+  const imageSlide  = useRef(new Animated.Value(0)).current;
+  // Text fade + slide-up
+  const textFade    = useRef(new Animated.Value(1)).current;
+  const textTranslY = useRef(new Animated.Value(0)).current;
+  // Arrow pulse
+  const arrowScale  = useRef(new Animated.Value(1)).current;
+  // Dot width animations
+  const dotWidths   = useRef(DATA.map(() => new Animated.Value(8))).current;
+
+  // Animate dots when index changes
+  useEffect(() => {
+    DATA.forEach((_, i) => {
+      Animated.spring(dotWidths[i], {
+        toValue: 10,
+        useNativeDriver: false,
+        tension: 60,
+        friction: 7,
+      }).start();
+    });
+  }, [index]);
+
+  const animateToNext = nextIndex => {
+    // 1. Fade text out
+    Animated.parallel([
+      Animated.timing(textFade,    {toValue: 0,  duration: 150, useNativeDriver: true}),
+      Animated.timing(textTranslY, {toValue: 10, duration: 150, useNativeDriver: true}),
+    ]).start(() => {
+      // 2. Slide image strip
+      Animated.spring(imageSlide, {
+        toValue: -nextIndex * width,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 8,
+      }).start();
+
+      setIndex(nextIndex);
+
+      // 3. Fade text back in from above
+      textTranslY.setValue(-12);
+      Animated.parallel([
+        Animated.timing(textFade,    {toValue: 1, duration: 250, useNativeDriver: true}),
+        Animated.timing(textTranslY, {toValue: 0, duration: 250, useNativeDriver: true}),
+      ]).start();
+    });
+  };
+
+  const handleNext = async () => {
+    Animated.sequence([
+      Animated.timing(arrowScale, {toValue: 0.88, duration: 80,  useNativeDriver: true}),
+      Animated.spring(arrowScale,  {toValue: 1,    useNativeDriver: true, tension: 200}),
+    ]).start();
+
     if (index === DATA.length - 1) {
-      await AsyncStorage.setItem('foodflow','true');
+      await AsyncStorage.setItem('foodflow', 'true');
       navigate('Foodtab');
       return;
     }
-    const nextIndex = index + 1;
+    animateToNext(index + 1);
+  };
 
-    Animated.timing(translateX, {
-      toValue: -nextIndex * BOX_WIDTH,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-
-    setIndex(nextIndex);
+  const handleSkip = async () => {
+    await AsyncStorage.setItem('foodflow', 'true');
+    navigate('Foodtab');
   };
 
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={require('../../../Assets/Images/bgimg.png')}
-        style={styles.bgimg}
-        resizeMode="cover">
-        <View style={styles.box}>
-          <View style={{width: '100%', overflow: 'hidden'}}>
-            <Animated.View style={[styles.slider, {transform: [{translateX}]}]}>
-              {DATA.map((item, i) => (
-                <View key={i} style={{width: BOX_WIDTH}}>
-                  <Text style={styles.txt1}>{t(item.title)}</Text>
-                  <Text style={styles.txt2}>{t(item.desc)}</Text>
-                </View>
-              ))}
-            </Animated.View>
+        source={require('../../../Assets/Images/onboardingBg.png')}
+        style={styles.bgImage}>
+
+        {/* ── IMAGE STRIP: all slides side-by-side, clipped to screen width ── */}
+        <View style={styles.imageArea}>
+          <Animated.View
+            style={[
+              styles.imageStrip,
+              {transform: [{translateX: imageSlide}]},
+            ]}>
+            {DATA.map((item, i) => (
+              <View key={i} style={styles.imageSlide}>
+                <Image
+                  source={item.image}
+                  style={styles.illustration}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </Animated.View>
+        </View>
+
+        {/* ── BOTTOM Constants.white CARD ── */}
+        <View style={styles.card}>
+          <Animated.View
+            style={{
+              opacity:   textFade,
+              transform: [{translateY: textTranslY}],
+              alignItems: 'center',
+            }}>
+            <Text style={styles.title}>{t(DATA[index].title)}</Text>
+            <Text style={styles.desc}>{t(DATA[index].desc)}</Text>
+          </Animated.View>
+
+          {/* Dots */}
+          <View style={styles.dotsRow}>
+            {DATA.map((_, i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.dot,
+                  {
+                    width:           dotWidths[i],
+                    backgroundColor: i === index ? Constants.dark_green : '#C0C0C0',
+                  },
+                ]}
+              />
+            ))}
           </View>
 
-          {/* Progress dots */}
-          <View style={styles.dots}>
-            {DATA.map((_, i) => {
-              const isActive = i === index;
-              return (
-                <Animated.View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    isActive && styles.activeDot,
-                    {
-                      transform: [{scale: isActive ? 1.4 : 1}],
-                      opacity: isActive ? 1 : 0.5,
-                    },
-                  ]}
-                />
-              );
-            })}
-          </View>
-          <AnimatedCircularProgress
-            size={80}
-            width={3}
-            fill={((index + 1) / DATA.length) * 100}
-            tintColor="#fff"
-            backgroundColor="rgba(255,255,255,0.2)"
-            rotation={0}
-            style={styles.progressWrapper}>
-              {() => (
-            <TouchableOpacity style={styles.arrowButton} onPress={handleNext}>
-              <RightArrow2 height={20} width={20} />
+          {/* Footer */}
+          <View style={styles.footer}>
+            <TouchableOpacity onPress={handleSkip} >
+              <Text style={styles.skipTxt}>{t('Skip')}</Text>
             </TouchableOpacity>
-              )}
-          </AnimatedCircularProgress>
+
+            <Animated.View style={{transform: [{scale: arrowScale}]}}>
+              <TouchableOpacity
+                style={styles.arrowBtn}
+                onPress={handleNext}
+                activeOpacity={0.85}>
+                <View style={styles.chevron} />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
         </View>
+
       </ImageBackground>
     </View>
   );
@@ -121,67 +185,102 @@ export default Onboarding;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Constants.white,
   },
-  bgimg: {
+  bgImage: {
     flex: 1,
+    marginTop:-50,
   },
-  box: {
-    backgroundColor: Constants.dark_green,
-    width: '80%',
-    borderRadius: 25,
-    position: 'absolute',
-    bottom: 20,
-    alignSelf: 'center',
-    padding: 20,
-    minHeight: 320,
+
+  /* Image area – clips overflow so only one slide is visible */
+  imageArea: {
+    flex: 1,
+    // overflow: 'hidden',
   },
-  txt1: {
-    fontSize: 18,
-    color: Constants.white,
-    fontFamily: FONTS.SemiBold,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  txt2: {
-    fontSize: 14,
-    color: Constants.white,
-    fontFamily: FONTS.Medium,
-    textAlign: 'center',
-  },
-  dots: {
+  imageStrip: {
     flexDirection: 'row',
-    width: '100%',
+    flex: 1,
+    width: width * DATA.length,
+    // marginTop:'35%',
+  },
+  imageSlide: {
+    width,
+    flex: 1,
+    // justifyContent: 'center',
+    marginTop:'5%',
+    alignItems: 'center',
+  },
+  illustration: {
+    width:  width * 0.96,
+    height: height * 0.68,
+  },
+
+  card: {
+    backgroundColor:      Constants.white,
+    paddingHorizontal:    28,
+    paddingTop:           20,
+    paddingBottom:        0,
+    // minHeight:            height * 0.42,
+    position:             'absolute',
+    bottom:               0,
+  },
+  title: {
+    fontSize:      26,
+    fontFamily:   FONTS.Bold,
+    color:         Constants.normal_green,
+    textAlign:     'center',
+    marginBottom:  14,
+    letterSpacing: 0.2,
+  },
+  desc: {
+    fontSize:          14,
+    lineHeight:        22,
+    color:             Constants.customgrey,
+    textAlign:         'center',
+    paddingHorizontal: 8,
+  },
+
+  /* Dots */
+  dotsRow: {
+    flexDirection:  'row',
     justifyContent: 'center',
-    marginTop: 20,
+    alignItems:     'center',
+    marginTop:      24,
+    gap:            6,
   },
   dot: {
-    height: 8,
-    width: 8,
-    backgroundColor: 'gray',
-    borderRadius: 4,
-    marginHorizontal: 7,
+    height:       10,
+    borderRadius: 6,
   },
-  activeDot: {
-    width: 15,
-    height:6,
-    backgroundColor: 'white',
-    alignSelf:'center'
+
+  /* Footer */
+  footer: {
+    flexDirection:  'row',
+    justifyContent: 'space-between',
+    alignItems:     'center',
+    marginTop:      28,
+    paddingBottom:  24,
   },
-    arrowButton: {
-      width: 50,
-      height: 50,
-      borderRadius: 30,
-      backgroundColor: 'white',
-      justifyContent: 'center',
-      alignItems: 'center',    
+  skipTxt: {
+    fontSize:   16,
+    color:      Constants.customgrey,
+    fontFamily: FONTS.Regular,
   },
-  slider: {
-    flexDirection: 'row',
+  arrowBtn: {
+    width:           54,
+    height:          54,
+    borderRadius:    17,
+    backgroundColor: Constants.white,
+    justifyContent:  'center',
+    alignItems:      'center',
+    boxShadow:      '0px 3px 10px 0px #2C614080',
   },
-  progressWrapper: {
-    alignSelf: 'center',
-    justifyContent:'center',
-    marginTop: 20,
+  chevron: {
+    width:            11,
+    height:           11,
+    borderTopWidth:   2.5,
+    borderRightWidth: 2.5,
+    borderColor:      Constants.dark_green,
+    transform:        [{rotate: '45deg'}],
+    marginLeft:       -3,
   },
 });

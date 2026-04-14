@@ -32,7 +32,7 @@ import {goBack, navigate} from '../../../../navigationRef';
 import {GetApi, Post} from '../../../Assets/Helpers/Service';
 import {LoadContext, ToastContext} from '../../../../App';
 import {PERMISSIONS, request} from 'react-native-permissions';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import MapViewDirections from 'react-native-maps-directions';
 import LocationAutocomplete from '../../../Assets/Component/LocationAutocomplete';
 import {
@@ -285,7 +285,7 @@ const stopwaypoint = ride?.stops
                 console.log(error.code, error.message);
                 //   return error;
               },
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+              {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
             );
           }
         });
@@ -309,7 +309,7 @@ const stopwaypoint = ride?.stops
               console.log(error.code, error.message);
               //   return error;
             },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+            {enableHighAccuracy: false, timeout: 30000, maximumAge: 60000},
           );
         } else {
           console.log('location permission denied');

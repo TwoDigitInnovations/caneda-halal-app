@@ -5,7 +5,6 @@ import {
   ImageBackground,
   Keyboard,
   Modal,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -389,7 +388,7 @@ const Cart = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <GestureHandlerRootView style={{flex: 1}}>
         <Text style={styles.headtxt}>
           {t("My Cart")}
@@ -402,8 +401,7 @@ const Cart = () => {
             <View style={styles.rowbetw}>
               <View style={{width: '50%'}}>
                 <Text
-                  style={styles.deltxt}
-                  >
+                  style={styles.deltxt}>
                   {t("Delivery Location")}
                 </Text>
                 <Text style={styles.deltxt2} numberOfLines={2}>
@@ -416,28 +414,7 @@ const Cart = () => {
                 {t("Change Location")}
               </Text>
             </View>
-            {!appliedCoupon?.discount && (
-              <View style={styles.aplcov}>
-                <DiscountIcon
-                  height={25}
-                  width={25}
-                  style={{alignSelf: 'center'}}
-                  color={Constants.normal_green}
-                />
-                <TextInput
-                  placeholder={t("Promo Code ...")}
-                  placeholderTextColor={Constants.customgrey2}
-                  style={styles.protxtinp}
-                  value={applyCoupon}
-                  onChangeText={e => setApplyCoupon(e)}
-                />
-                <TouchableOpacity
-                  style={styles.aplbtn}
-                  onPress={() => applyCouponCode()}>
-                  <Text style={styles.apltxt}>{t("Apply")}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            
             <View style={{marginTop: 20}}>
               {foodcartdetail.map((item, i) => (
                 <View
@@ -447,11 +424,12 @@ const Cart = () => {
                     source={{uri: item?.image}}
                     style={{height: 80, width: 80, borderRadius: 20}}
                   />
-                  <View style={{marginLeft: 10, flex: 1}}>
-                    <Text style={styles.deltxt2}>{item?.foodname}</Text>
-                    <Text style={styles.deltxt2}>{Currency} {item?.price}</Text>
+                  {/* <View style={{marginLeft: 10, flex: 1}}> */}
+                    
                     <View style={styles.rowbetw}>
-                      <View style={{flexDirection: 'row'}}>
+                      <View style={{width:'80%'}}>
+                    <Text style={styles.deltxt2} numberOfLines={2}>fgoihn ftjn ftinh iotnh rtinhr roithn rtoihn frthnp forithmn </Text>
+                      <View style={styles.qtycov}>
                         <TouchableOpacity
                           style={[
                             styles.iconcov,
@@ -487,7 +465,7 @@ const Cart = () => {
                                 ? Constants.customgrey2
                                 : Constants.black
                             }
-                          />
+                          height={12} width={12}/>
                         </TouchableOpacity>
                         <Text style={styles.qty}>{item?.qty}</Text>
                         <TouchableOpacity
@@ -509,9 +487,12 @@ const Cart = () => {
                               JSON.stringify(updatedCart),
                             );
                           }}>
-                          <PlusIcon />
+                          <PlusIcon height={12} width={12}/>
                         </TouchableOpacity>
                       </View>
+                      </View>
+                      <View style={{alignItems:'flex-end',justifyContent:'space-between'}}>
+                      <Text style={styles.deltxt2}>{Currency} {item?.price}</Text>
                       <DeleteIcon
                         color={Constants.red}
                         onPress={async () => {
@@ -524,11 +505,36 @@ const Cart = () => {
                           setSelecteddate(null);
                         }}
                       />
+                      </View>
                     </View>
-                  </View>
+                  {/* </View> */}
                 </View>
               ))}
             </View>
+
+            {!appliedCoupon?.discount && (
+              <View style={styles.aplcov}>
+                <DiscountIcon
+                  height={25}
+                  width={25}
+                  style={{alignSelf: 'center'}}
+                  color={Constants.normal_green}
+                />
+                <TextInput
+                  placeholder={t("Promo Code ...")}
+                  placeholderTextColor={Constants.customgrey2}
+                  style={styles.protxtinp}
+                  value={applyCoupon}
+                  onChangeText={e => setApplyCoupon(e)}
+                />
+                <TouchableOpacity
+                  style={styles.aplbtn}
+                  onPress={() => applyCouponCode()}>
+                  <Text style={styles.apltxt}>{t("Apply")}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <View style={styles.aftprobg}>
               <TouchableOpacity
                 style={styles.accoptcov}
@@ -539,7 +545,7 @@ const Cart = () => {
                 <View
                   style={{flexDirection: 'row', gap: 10, alignItems: 'center'}}>
                   <View style={styles.iconcov2}>
-                    <WalkIcon height={20} width={20} />
+                    <WalkIcon height={20} width={20} color={Constants.normal_green}/>
                   </View>
                   <Text style={styles.acctxt}>{t("Pickup by self")}</Text>
                 </View>
@@ -707,7 +713,7 @@ const Cart = () => {
               </View>
             )}
             <View style={styles.btmbox}>
-                <Text style={styles.paysumtxt}>{t("Payment Summary")}</Text>
+                <Text style={styles.paysumtxt}>{t("Bill Summary")}</Text>
               <View style={styles.rowbetw2}>
                 <Text style={styles.deltxt}>{t("Total")}</Text>
                 <Text style={styles.deltxt2}>{Currency}{totalsum}</Text>
@@ -1304,7 +1310,7 @@ const Cart = () => {
           </View>
         </View>
       </Modal>}
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -1321,6 +1327,18 @@ const styles = StyleSheet.create({
     color: Constants.black,
     fontFamily: FONTS.SemiBold,
     textAlign: 'center',
+  },
+  qtycov:{
+    borderWidth: 1,
+    borderColor: '#2C61401A',
+    backgroundColor:'#2C61400D',
+    borderRadius: 5,
+    flexDirection:'row',
+    padding:4,
+    alignItems:'center',
+    justifyContent:'center',
+    height:35,
+    width:80,
   },
   empttxt: {
     fontSize: 16,
@@ -1374,7 +1392,7 @@ const styles = StyleSheet.create({
   },
   apltxt: {
     fontSize: 14,
-    color: Constants.white,
+    color: Constants.normal_green,
     fontFamily: FONTS.SemiBold,
   },
   cngtxt: {
@@ -1420,7 +1438,7 @@ const styles = StyleSheet.create({
     // alignSelf: 'center',
   },
   aplbtn: {
-    backgroundColor: Constants.normal_green,
+    // backgroundColor: Constants.normal_green,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -1428,13 +1446,14 @@ const styles = StyleSheet.create({
   },
   aplcov: {
     flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: Constants.customgrey2,
+    // borderWidth: 1,
+    // borderColor: Constants.customgrey2,
     borderRadius: 30,
     paddingHorizontal: 10,
     paddingVertical: 7,
     marginTop: 10,
-    height:55
+    height:55,
+    boxShadow: '0px 1px 4px 0px #dedede',
   },
   protxtinp: {
     flex: 1,
@@ -1443,7 +1462,9 @@ const styles = StyleSheet.create({
   rowbetw: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    // backgroundColor:'red'
+    marginLeft: 10,
+    // backgroundColor:'red',
+    width: '75%'
   },
   rowbetw2: {
     flexDirection: 'row',
@@ -1451,26 +1472,26 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   iconcov: {
-    borderWidth: 1,
-    borderColor: Constants.black,
+    // borderWidth: 1,
+    // borderColor: Constants.black,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 30,
+    // borderRadius: 30,
     padding: 5,
   },
   qty: {
-    fontSize: 16,
+    fontSize: 14,
     color: Constants.black,
     fontFamily: FONTS.SemiBold,
     marginHorizontal: 10,
   },
   paysumtxt: {
     fontSize: 16,
-    color: Constants.black,
+    color: Constants.customgrey3,
     fontFamily: FONTS.SemiBold,
   },
   btmbox: {
-    borderWidth: 1,
+    // borderWidth: 1,
     padding: 10,
     borderRadius: 15,
     marginTop: 20,
@@ -1617,8 +1638,8 @@ const styles = StyleSheet.create({
     borderColor: Constants.customgrey3,
   },
   iconcov2: {
-    backgroundColor: '#F5F5FF',
-    borderRadius: 10,
+    backgroundColor: '#16A34A1A',
+    borderRadius: 30,
     padding: 10,
   },
   sheetheadtxt: {

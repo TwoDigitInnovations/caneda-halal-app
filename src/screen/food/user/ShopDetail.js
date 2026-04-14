@@ -75,7 +75,7 @@ const ShopDetail = props => {
       </View>
       <View style={styles.stodata}>
         <View style={styles.icontxtcov}>
-          <Clock2Icon height={15} width={15} />
+          <Clock2Icon height={15} width={15} color='#5C5C5C'/>
           {data?.status === 'open' ? (
             <Text style={[styles.opntxt, {color: Constants.black}]}>
               {t('Open Now')}

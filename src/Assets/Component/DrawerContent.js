@@ -39,7 +39,7 @@ const DrawerList = [
     navigateTo: 'WorkLocation',
   },
   {
-    icon: <Clock2Icon height={25} width={25} />,
+    icon: <Clock2Icon height={25} width={25} color='#5C5C5C'/>,
     label: 'My Rides',
     navigateTo: 'MyRides',
   },
