@@ -7,7 +7,18 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "build-apk": "npx react-native run-android --mode=release",
+    "signinreport": "cd android && ./gradlew signingReport",
+    "pod": "npx pod-install ios",
+    "gradle-clean": "cd android && gradlew clean && cd ..",
+    "pod-install": "cd ios && pod deintegrate && pod install && cd ..",
+    "gradle-clean-mac": "cd android && ./gradlew clean && cd ..",
+    "build-android": "cd android && gradlew clean && cd .. && react-native run-android",
+    "release-buildAPK": "cd android && ./gradlew clean && ./gradlew assembleRelease && cd ..",
+    "release-buildAAB": "cd android && ./gradlew clean && ./gradlew bundleRelease && cd ..",
+    "gradle-permission": "cd android && chmod +x gradlew && cd ..",
+    "debug-build": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res/ && cd android && ./gradlew clean && ./gradlew assembleDebug && cd .."
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.2.9",

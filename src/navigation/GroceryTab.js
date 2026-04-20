@@ -1,7 +1,15 @@
-import React, {useCallback, useContext, useRef} from 'react';
-import {Platform, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {CartIcon,CategoriesIcon,Home2Icon,  Profile2Icon, ShopIcon } from '../../Theme';
+import React, { useContext, useEffect, useRef } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { CategoryIcon, Home2Icon, Profile4Icon, Shop2Icon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
 import Home from '../screen/grocery/app/Home';
 import Cart from '../screen/grocery/app/Cart';
@@ -9,156 +17,215 @@ import Account from '../screen/grocery/app/Account';
 import { useTranslation } from 'react-i18next';
 import { GroceryCartContext } from '../../App';
 import GroceryShops from '../screen/grocery/app/GroceryShops';
-
-
-
+import Categories from '../screen/grocery/app/Categories';
 
 const Tab = createBottomTabNavigator();
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
-export const  Grocerytab=()=>{
-  const [grocerycartdetail, setgrocerycartdetail] = useContext(GroceryCartContext);
- const { t } = useTranslation();
+const TAB_BAR_H = Platform.OS === 'ios' ? 70 : 60;
+const H_MARGIN = 16;
+const BAR_WIDTH = SCREEN_WIDTH - H_MARGIN * 2;
+const TAB_WIDTH = BAR_WIDTH / 4;
+
+const PILL_WIDTH = 110;
+const PILL_HEIGHT = 46;
+const PILL_TOP = (TAB_BAR_H - PILL_HEIGHT) / 2;
+
+export const Grocerytab = () => {
+  const { t } = useTranslation();
+  const [grocerycartdetail] = useContext(GroceryCartContext);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
   const TabArr = [
     {
-      iconActive: <Home2Icon color={Constants.dark_green} height={30} width={30} />,
-      iconInActive: <Home2Icon color={Constants.tabgrey} height={30} width={30} />,
+      icon: (color) => <Home2Icon color={color} height={24} width={24} />,
       component: Home,
       routeName: 'Home',
       name: t('Home'),
     },
     {
-      iconActive: <ShopIcon color={Constants.dark_green} height={30} width={30} />,
-      iconInActive: <ShopIcon color={Constants.tabgrey} height={30} width={30} />,
+      icon: (color) => <Shop2Icon color={color} height={24} width={24} />,
       component: GroceryShops,
       routeName: 'GroceryShops',
       name: t('Shops'),
     },
     {
-      iconActive: <CartIcon color={Constants.dark_green} height={30} width={30} />,
-      iconInActive: <CartIcon color={Constants.tabgrey} height={30} width={30} />,
-      component: Cart,
-      routeName: 'Cart',
-      name: t('Cart'),
+      icon: (color) => <CategoryIcon color={color} height={24} width={24} />,
+      component: Categories,
+      routeName: 'Categories',
+      name: t('Categories'),
     },
     {
-        iconActive: <Profile2Icon color={Constants.dark_green} height={30} width={30} />,
-        iconInActive: <Profile2Icon color={Constants.tabgrey} height={30} width={30} />,
-        component: Account,
-        routeName: 'Account',
-        name: t('Account'),
+      icon: (color) => <Profile4Icon color={color} height={22} width={22} />,
+      component: Account,
+      routeName: 'Account',
+      name: t('Account'),
     },
-   
   ];
 
-  const TabButton = useCallback(
-    ({accessibilityState, onPress, onclick, item,index}) => {
-      const cartCount = grocerycartdetail?.length || 0;
-      const isSelected = accessibilityState?.selected;
-      return (
-        <View style={styles.tabBtnView}>
-         <View style={[index ===1 && {position:'relative'}]}>
-          <TouchableOpacity
-            onPress={onclick ? onclick : onPress}
+  const animatePill = (index) => {
+    Animated.spring(slideAnim, {
+      toValue: index,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 55,
+    }).start();
+  };
+
+  const pillTranslateX = slideAnim.interpolate({
+    inputRange: [0, 1, 2, 3],
+    outputRange: [0, 1, 2, 3].map(
+      (i) => i * TAB_WIDTH + (TAB_WIDTH - PILL_WIDTH) / 2
+    ),
+  });
+
+  const CustomTabBar = ({ state, navigation }) => {
+    useEffect(() => {
+      animatePill(state.index);
+    }, [state.index]);
+
+    const cartCount = grocerycartdetail?.length || 0;
+
+    return (
+      <View style={styles.outerWrapper}>
+        {/* ── Frosted glass bar (no package) ── */}
+        <View style={styles.tabBarOuter}>
+
+          {/* ── Sliding pill — more opaque so it looks "less blurry" ── */}
+          <Animated.View
             style={[
-              styles.tabBtn,
-              // isSelected ? styles.tabBtnActive : styles.tabBtnInActive,
-            ]}>
-            {isSelected ? item.iconActive : item.iconInActive}
-            
-          </TouchableOpacity>
-          { index ===2&&cartCount>0&&<TouchableOpacity style={styles.badge} onPress={onclick ? onclick : onPress}>
-                <Text style={styles.badgeText}>
-                  {cartCount > 99 ? '99+' : cartCount}
-                </Text>
-              </TouchableOpacity>}
-              </View>
-          <Text style={[styles.tabtxt,{color:isSelected?Constants.dark_green:Constants.black}]}>{item.name}</Text>
+              styles.pill,
+              {
+                width: PILL_WIDTH,
+                height: PILL_HEIGHT,
+                top: PILL_TOP,
+                transform: [{ translateX: pillTranslateX }],
+              },
+            ]}
+          />
+
+          {/* ── Tab items ── */}
+          {TabArr.map((item, index) => {
+            const isSelected = state.index === index;
+            const route = state.routes[index];
+            const iconColor = isSelected ? Constants.dark_green : Constants.tabgrey;
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.tabItem}
+                activeOpacity={0.8}
+                onPress={() => {
+                  const event = navigation.emit({
+                    type: 'tabPress',
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
+                  if (!isSelected && !event.defaultPrevented) {
+                    navigation.navigate(route.name);
+                  }
+                }}>
+
+                {isSelected ? (
+                  <View style={styles.activeRow}>
+                    <View style={styles.iconBox}>
+                      {item.icon(Constants.dark_green)}
+                    </View>
+                    <Text style={styles.activeLabel}>{item.name}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.inactiveCol}>
+                    <View style={styles.iconBox}>
+                      {item.icon(Constants.tabgrey)}
+                    </View>
+                    <Text style={styles.inactiveLabel}>{item.name}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      );
-    },
-    [grocerycartdetail],
-  );
+      </View>
+    );
+  };
 
   return (
-    
     <Tab.Navigator
-      screenOptions={{
-        tabBarShowLabel: false,
-        headerShown: false,
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: {
-          position: 'absolute',
-          width: '100%',
-          height: Platform.OS === 'ios'? 90:70,
-          backgroundColor: Constants.white,
-          borderTopRightRadius: 15,
-          borderTopLeftRadius: 15,
-          borderTopWidth: 0,
-        //   paddingTop: Platform.OS === 'ios' ? 10 : 0,
-        },
-      }}>
-      {TabArr.map((item, index) => {
-        return (
-          <Tab.Screen
-            key={index}
-            name={item.routeName}
-            component={item.component}
-           
-            options={{
-              tabBarShowLabel: false,
-              tabBarButton: props => (
-                <TabButton {...props} item={item} index={index} />
-              ),
-            }}
-          />
-        );
-      })}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}>
+      {TabArr.map((item, index) => (
+        <Tab.Screen key={index} name={item.routeName} component={item.component} />
+      ))}
     </Tab.Navigator>
-    
   );
-  
-}
+};
 
 const styles = StyleSheet.create({
-  tabBtnView: {
-    // backgroundColor: isSelected ? 'blue' : '#FFFF',
+  outerWrapper: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 24 : 16,
+    left: H_MARGIN,
+    right: H_MARGIN,
+    // Shadow so bar lifts off the page content beneath it
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 12,
+    // backgroundColor:'red'
+  },
+  tabBarOuter: {
+    flexDirection: 'row',
+    height: TAB_BAR_H,
+    borderRadius: 50,
+    // Semi-transparent white — simulates the blurry frosted look
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  pill: {
+    position: 'absolute',
+    // More opaque white = "less blurry" active capsule
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    borderRadius: 50,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    height: '100%',
+    zIndex: 1,
   },
-  tabBtn: {
-    height: 40,
-    width: 40,
-    borderRadius: 15,
+  activeRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
   },
-  tabBtnActive: {
-    backgroundColor: Constants.white,
-  },
-  tabBtnInActive: {
-    backgroundColor: 'white',
-  },
-  tabtxt:{
-    color:Constants.black,
-    // fontWeight:'400',
-    fontFamily:FONTS.Medium,
-  },
-   badge: {
-    position: 'absolute',
-    top: 1,
-    right: -2,
-    backgroundColor: Constants.normal_green,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 10,
+  activeLabel: {
+    color: Constants.dark_green,
     fontFamily: FONTS.Medium,
-    textAlign: 'center',
+    fontSize: 13,
+  },
+  inactiveCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  inactiveLabel: {
+    color: Constants.tabgrey,
+    fontFamily: FONTS.Medium,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  iconBox: {
+    // position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

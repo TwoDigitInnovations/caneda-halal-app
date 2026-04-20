@@ -11,41 +11,46 @@ import {
 } from 'react-native';
 import React, { useContext, useEffect, useState } from 'react';
 import {
+  Cart2Icon,
   DownarrowIcon,
   Location2Icon,
   LocationIcon,
+  Notification2Icon,
+  NotificationIcon,
   ProfileIcon,
 } from '../../../Theme';
 import Constants, { FONTS } from '../Helpers/constant';
 import { goBack, navigate } from '../../../navigationRef';
-import { AddressContext, GroceryUserContext, UserContext } from '../../../App';
+import { AddressContext, GroceryCartContext, GroceryUserContext, UserContext } from '../../../App';
 
 const Header = props => {
   const [location, setlocation] = useState(null);
   const [locationadd, setlocationadd] = useContext(AddressContext);
   const [groceryuserProfile, setgroceryuserProfile] =useContext(GroceryUserContext)
+  const [grocerycartdetail] = useContext(GroceryCartContext);
+  const cartCount = grocerycartdetail?.length || 0;
 
   return (
-    <View style={{ backgroundColor: Constants.normal_green }}>
-      {/* <StatusBar barStyle={Platform.OS==='ios'?"dark-content":"light-content"} backgroundColor={Constants.normal_green} /> */}
-      <StatusBar barStyle="dark-content" />
+    <View >
+
       <View style={styles.toppart}>
         <View style={styles.firstrow}>
-          <TouchableOpacity
-            style={{ flexDirection: 'row' }}
-            onPress={() => navigate('GroceryShipping')}>
-            <Location2Icon height={25} width={25} color={Constants.white}/>
-            {groceryuserProfile?.shipping_address?.address ? (
-              <Text style={styles.locationtxt} numberOfLines={1}>
-                {groceryuserProfile?.shipping_address?.house_no},{' '}
-                {groceryuserProfile?.shipping_address?.address}
-              </Text>
-            ) : (
-              <Text style={styles.locationtxt} numberOfLines={1}>
-                {locationadd}
-              </Text>
+              <View style={styles.deliveryInfo}>
+                        <Text style={[styles.deliveryTitle, {color: props.textColor || Constants.white}]}>15 minutes</Text>
+                        <Text style={[styles.deliverySubtitle, {color: props.textColor || Constants.white}]} numberOfLines={1} onPress={() => navigate('GroceryShipping')}>
+                          HOME -{' '}
+                          {groceryuserProfile?.shipping_address?.address || locationadd}
+                        </Text>
+                      </View>
+          <TouchableOpacity style={styles.iconcov} onPress={()=>navigate('GroceryCart')}>
+            <Cart2Icon height={18} width={18} />
+            {cartCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {cartCount > 99 ? '99+' : cartCount}
+                </Text>
+              </View>
             )}
-            <DownarrowIcon height={15} width={15} style={{ alignSelf: 'center' }} color={Constants.white}/>
           </TouchableOpacity>
           {groceryuserProfile?.image ? (
             <TouchableOpacity onPress={() =>
@@ -59,14 +64,14 @@ const Header = props => {
               />
             </TouchableOpacity>
           ) : (
-            <ProfileIcon
-              height={22}
-              width={22}
-              color={Constants.white}
+            <TouchableOpacity
+            style={styles.iconcov}
               onPress={() =>
                navigate('Groceryprofile')
               }
-            />
+            >
+              <Text>{groceryuserProfile?.name?.split(' ')[0] || 'P'}</Text>
+              </TouchableOpacity>
           )}
         </View>
       </View>
@@ -78,27 +83,66 @@ export default Header;
 
 const styles = StyleSheet.create({
   toppart: {
-    backgroundColor: Constants.normal_green,
+    // backgroundColor: Constants.normal_green,
     paddingTop: 5,
     // paddingBottom: 20,
   },
   firstrow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems:'center',
     padding: 10,
     marginVertical: 10,
   },
-  locationtxt: {
-    color: Constants.white,
-    fontSize: 16,
+  deliveryInfo: {
+    // flex: 1,
+    width: '75%',
+    // backgroundColor:'red'
+  },
+  deliveryTitle: {
+    fontSize: 18,
     fontFamily: FONTS.Bold,
-    marginLeft: 10,
-    marginRight: 5,
-    maxWidth: '70%',
+    color: Constants.white,
+    lineHeight: 22,
+  },
+  deliverySubtitle: {
+    fontSize: 12,
+    fontFamily: FONTS.Medium,
+    color: Constants.white,
+    // marginTop: 2,
+    // width: '70%',
   },
   hi: {
     height: 28,
     width: 28,
     borderRadius: 15,
+  },
+  iconcov:{
+    backgroundColor:'#F1F5F9CC',
+    boxShadow: '0px 1px 4px 0px #00000024',
+    borderRadius:50,
+    height:35,
+    width:35,
+    justifyContent:'center',
+    alignItems:'center'
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: Constants.normal_green,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontFamily: FONTS.Medium,
+    textAlign: 'center',
+    lineHeight: 15,
   },
 });

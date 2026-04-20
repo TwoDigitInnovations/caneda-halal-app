@@ -7,8 +7,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
-  StatusBar,
 } from 'react-native';
 import Constants, {FONTS} from '../Helpers/constant';
 
@@ -270,8 +268,7 @@ const CountryPickerModal = ({
         visible={visible}
         animationType="slide"
         onRequestClose={handleClose}>
-        <SafeAreaView style={styles.container}>
-          <StatusBar barStyle="dark-content" />
+        <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.title}>Select Country</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
@@ -308,7 +305,7 @@ const CountryPickerModal = ({
             }}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
           />
-        </SafeAreaView>
+        </View>
       </Modal>
     </>
   );

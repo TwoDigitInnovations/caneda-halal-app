@@ -1,11 +1,8 @@
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
   ImageBackground,
-  Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +12,15 @@ import {
 } from 'react-native';
 import React, {useContext, useEffect, useState} from 'react';
 import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
-import {PlusIcon, RightArrow, SearchIcon} from '../../../../Theme';
+import {
+  PlusIcon,
+  RightArrow,
+  SearchIcon,
+  UnfavIcon,
+  StarIcon,
+  ClockIcon,
+  GrocerybtmwelIcon,
+} from '../../../../Theme';
 import LinearGradient from 'react-native-linear-gradient';
 import {navigate} from '../../../../navigationRef';
 import {GetApi, Post} from '../../../Assets/Helpers/Service';
@@ -33,6 +38,167 @@ import Scheliton from '../../../Assets/Component/Scheliton';
 import TranslateHandled from '../../../Assets/Component/TranslateHandled';
 import CuurentLocation from '../../../Assets/Component/CuurentLocation';
 
+// ─── Smart Bestseller Image Grid ────────────────────────────────────────────
+// Rules:
+//  1 image  → fills full card
+//  2 images → each fills 50% width, full height
+//  3 images → first fills full left half; right half split top/bottom
+//  4+ images→ 2×2 grid; last cell shows the extra-count overlay
+const BestsellerImageGrid = ({groceries = [], totalCount = 0}) => {
+  const images = groceries.map(g => g.image?.[0]).filter(Boolean);
+  const count = images.length;
+
+  if (count === 0) {
+    return <View style={bsGrid.empty} />;
+  }
+
+  if (count === 1) {
+    return (
+      <View style={bsGrid.container}>
+        <Image source={{uri: images[0]}} style={bsGrid.full} resizeMode="cover" />
+      </View>
+    );
+  }
+
+  if (count === 2) {
+    return (
+      <View style={[bsGrid.container, {flexDirection: 'row'}]}>
+        <Image source={{uri: images[0]}} style={bsGrid.half} resizeMode="cover" />
+        <View style={bsGrid.dividerV} />
+        <Image source={{uri: images[1]}} style={bsGrid.half} resizeMode="cover" />
+      </View>
+    );
+  }
+
+  if (count === 3) {
+    return (
+      <View style={[bsGrid.container, {flexDirection: 'row'}]}>
+        <Image source={{uri: images[0]}} style={bsGrid.half} resizeMode="cover" />
+        <View style={bsGrid.dividerV} />
+        <View style={{flex: 1}}>
+          <Image source={{uri: images[1]}} style={bsGrid.quarterTop} resizeMode="cover" />
+          <View style={bsGrid.dividerH} />
+          <Image source={{uri: images[2]}} style={bsGrid.quarterBottom} resizeMode="cover" />
+        </View>
+      </View>
+    );
+  }
+
+  // 4 or more → 2×2 grid
+  const extraCount = totalCount > 0 ? totalCount : count > 4 ? count - 3 : 0;
+  return (
+    <View style={[bsGrid.container, {flexDirection: 'row', flexWrap: 'wrap'}]}>
+      {[0, 1, 2, 3].map(idx => {
+        const isLast = idx === 3;
+        const showOverlay = isLast && extraCount > 0;
+        return (
+          <View key={idx} style={bsGrid.quadCell}>
+            {images[idx] ? (
+              <Image
+                source={{uri: images[idx]}}
+                style={StyleSheet.absoluteFill}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, {backgroundColor: '#f0f0f0'}]} />
+            )}
+            {showOverlay && (
+              <View style={bsGrid.overlay}>
+                <Text style={bsGrid.overlayTxt}>+{extraCount}</Text>
+                <Text style={bsGrid.overlayLabel}>more</Text>
+              </View>
+            )}
+            {/* thin grid lines */}
+            {idx % 2 === 0 && <View style={bsGrid.cellDividerR} />}
+            {idx < 2 && <View style={bsGrid.cellDividerB} />}
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
+const bsGrid = StyleSheet.create({
+  container: {
+    width: '100%',
+    height: 160,
+    overflow: 'hidden',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  empty: {
+    height: 160,
+    backgroundColor: '#f0f0f0',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  full: {
+    width: '100%',
+    height: '100%',
+  },
+  half: {
+    flex: 1,
+    height: '100%',
+  },
+  quarterTop: {
+    flex: 1,
+    width: '100%',
+  },
+  quarterBottom: {
+    flex: 1,
+    width: '100%',
+  },
+  dividerV: {
+    width: 1,
+    backgroundColor: '#fff',
+  },
+  dividerH: {
+    height: 1,
+    backgroundColor: '#fff',
+  },
+  quadCell: {
+    width: '50%',
+    height: '50%',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlayTxt: {
+    color: '#fff',
+    fontSize: 18,
+    fontFamily: FONTS.Bold ?? FONTS.SemiBold,
+    lineHeight: 22,
+  },
+  overlayLabel: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: FONTS.Regular,
+  },
+  cellDividerR: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 1,
+    backgroundColor: '#fff',
+  },
+  cellDividerB: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 1,
+    backgroundColor: '#fff',
+  },
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+
 const Home = () => {
   const {t} = useTranslation();
   const [grocerycartdetail, setgrocerycartdetail] =
@@ -40,28 +206,27 @@ const Home = () => {
   const [toast, setToast] = useContext(ToastContext);
   const [loading, setLoading] = useContext(LoadContext);
   const [imgLoading, setImgLoading] = useState(true);
-  const [categorylist, setcategorylist] = useState();
-  const [topsellinglist, settopsellinglist] = useState([]);
   const [carosalimg, setcarosalimg] = useState([]);
   const [storelist, setstorelist] = useState([]);
-  const [groceryuserProfile, setgroceryuserProfile] =useContext(GroceryUserContext)
+  const [categoryWithProducts, setCategoryWithProducts] = useState([]);
+  const [groceryuserProfile, setgroceryuserProfile] =
+    useContext(GroceryUserContext);
+
   useEffect(() => {
-    getCategory();
-    getTopSoldProduct();
-    getSetting();
+    getCategoryWithProducts();
   }, []);
+
   useEffect(() => {
     getnearbyshops();
   }, [groceryuserProfile]);
 
-  const getCategory = () => {
+  const getCategoryWithProducts = () => {
     setLoading(true);
-    GetApi(`getGroceryCategory?limit=8`, {}).then(
+    GetApi(`getCategoryWithGrocerys`, {}).then(
       async res => {
         setLoading(false);
-        console.log(res);
         if (res.status) {
-          setcategorylist(res.data);
+          setCategoryWithProducts(res.data);
         }
       },
       err => {
@@ -70,42 +235,19 @@ const Home = () => {
       },
     );
   };
+
   const getnearbyshops = () => {
     setLoading(true);
-    if (groceryuserProfile?.shipping_address?.location?.coordinates?.length > 0) {
-    // Use saved location
-    const data = {
-      role: 'GROCERYSELLER',
-      location: groceryuserProfile.shipping_address.location,
-    };
-
-    Post(`getnearbystore`, data)
-      .then(async res => {
-        setLoading(false);
-        console.log(res);
-        if (res.status) {
-          setstorelist(res.data);
-        }
-      })
-      .catch(err => {
-        setLoading(false);
-        console.log(err);
-      });
-  } else {
-    // Fetch current location
-    CuurentLocation(res => {
+    if (
+      groceryuserProfile?.shipping_address?.location?.coordinates?.length > 0
+    ) {
       const data = {
         role: 'GROCERYSELLER',
-        location: {
-          type: 'Point',
-          coordinates: [res.coords.longitude, res.coords.latitude],
-        },
+        location: groceryuserProfile.shipping_address.location,
       };
-
       Post(`getnearbystore`, data)
         .then(async res => {
           setLoading(false);
-          console.log(res);
           if (res.status) {
             setstorelist(res.data);
           }
@@ -114,31 +256,34 @@ const Home = () => {
           setLoading(false);
           console.log(err);
         });
-    });
-  }
+    } else {
+      CuurentLocation(res => {
+        const data = {
+          role: 'GROCERYSELLER',
+          location: {
+            type: 'Point',
+            coordinates: [res.coords.longitude, res.coords.latitude],
+          },
+        };
+        Post(`getnearbystore`, data)
+          .then(async res => {
+            setLoading(false);
+            if (res.status) {
+              setstorelist(res.data);
+            }
+          })
+          .catch(err => {
+            setLoading(false);
+            console.log(err);
+          });
+      });
+    }
   };
-  const getTopSoldProduct = () => {
-    setLoading(true);
-    GetApi(`getTopSoldGrocery?limit=5`, {}).then(
-      async res => {
-        setLoading(false);
-        console.log(res);
-        if (res.status) {
-          settopsellinglist(res.data);
-        }
-      },
-      err => {
-        setLoading(false);
-        console.log(err);
-      },
-    );
-  };
+
   const getSetting = () => {
-    // setLoading(true);
     GetApi(`getGroceryCarousel`, {}).then(
       async res => {
         setLoading(false);
-        console.log(res);
         if (res.success) {
           setcarosalimg(res?.grocerycarousel[0].carousel);
         }
@@ -149,12 +294,12 @@ const Home = () => {
       },
     );
   };
+
   const cartdata = async productdata => {
     const existingCart = Array.isArray(grocerycartdetail)
       ? grocerycartdetail
       : [];
 
-    // Check if the exact product with selected price_slot exists
     const existingProduct = existingCart.find(
       f =>
         f.productid === productdata._id &&
@@ -162,12 +307,7 @@ const Home = () => {
     );
     if (existingCart.length > 0) {
       const currentSellerId = existingCart[0].seller_id;
-
-      // If trying to add product from a different seller
       if (productdata.sellerid !== currentSellerId) {
-        console.log('Different seller detected, clearing cart...');
-
-        // 🧹 Clear old cart and add new item
         const newProduct = {
           productid: productdata._id,
           productname: productdata.name,
@@ -180,30 +320,22 @@ const Home = () => {
           seller_profile: productdata.seller_profile?._id,
           seller_location: productdata.seller_profile?.location,
         };
-
         const updatedCart = [newProduct];
         setgrocerycartdetail(updatedCart);
         await AsyncStorage.setItem(
           'grocerycartdata',
           JSON.stringify(updatedCart),
         );
-        console.log('New product added after clearing cart:', newProduct);
         setToast('Successfully added to cart.');
         return;
       } else {
-        console.log(
-          'Product already in cart with this price slot:',
-          existingProduct,
-        );
         let stringdata = grocerycartdetail.map(_i => {
           if (_i?.productid == productdata._id) {
-            console.log('enter');
             return {..._i, qty: _i?.qty + 1};
           } else {
             return _i;
           }
         });
-        console.log(stringdata);
         setgrocerycartdetail(stringdata);
         await AsyncStorage.setItem(
           'grocerycartdata',
@@ -224,267 +356,238 @@ const Home = () => {
         seller_profile: productdata.seller_profile?._id,
         seller_location: productdata.seller_profile?.location,
       };
-
       const updatedCart = [...existingCart, newProduct];
       setgrocerycartdetail(updatedCart);
       await AsyncStorage.setItem(
         'grocerycartdata',
         JSON.stringify(updatedCart),
       );
-      console.log('Product added to cart:', newProduct);
     }
     setToast('Successfully added to cart.');
-    // navigate('Cart');
   };
+
+  const getAvgRating = reviews => {
+    if (!reviews || reviews.length === 0) return null;
+    const avg =
+      reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length;
+    return avg.toFixed(1);
+  };
+
   const width = Dimensions.get('window').width;
   const width2 = Dimensions.get('window').width - 30;
-  return (
-    <SafeAreaView style={styles.container}>
-      <Header />
-      <View
-        style={{backgroundColor: Constants.normal_green, paddingBottom: 15}}>
-        <TouchableOpacity
-          style={[styles.inpcov]}
-          onPress={() => {
-            console.log('enter'), navigate('GrocerySearchpage');
-          }}>
-          <SearchIcon height={20} width={20} color={Constants.black} />
-          <TextInput
-            style={styles.input}
-            editable={false}
-            placeholder={t('Search')}
-            onPress={() => navigate('GrocerySearchpage')}
-            placeholderTextColor={Constants.customgrey2}></TextInput>
-        </TouchableOpacity>
-      </View>
-      <ScrollView
-        style={{marginBottom: Platform.OS === 'android' ? 70 : 40}}
-        showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 0}}
-          colors={['#216D3E', '#1B3826']}
-          style={styles.btn}>
-          <Text style={styles.btntxt}>
-            {t('We provide you the instant delivery !')}
-          </Text>
-        </LinearGradient>
 
-        {/* <View style={styles.shopcov}>
-          {storelist &&
-            storelist.length > 0 &&
-            storelist.map((item, index) =>{return(index + 1) < 3 && (
-                  <TouchableOpacity style={{alignItems: 'center',width:"33%"}} key={index} onPress={()=>navigate("GroceryShops")}>
-                    <Image
-                      source={{uri: item?.store_logo}}
-                      style={{height: 80, width: 80, borderRadius: 70}}
-                    />
-                    <Text style={styles.shopname}>{item?.store_name}</Text>
-                  </TouchableOpacity>
-                )
-            })}
-            {storelist?.length>2&&<Text style={styles.sealtxt} onPress={()=>navigate("GroceryShops")}>See All</Text>}
-        </View> */}
-        <View style={{marginVertical: 20}}>
-          {carosalimg && carosalimg?.length > 0 ? (
-            <SwiperFlatList
-              autoplay
-              autoplayDelay={2}
-              autoplayLoop
-              // index={2}
-              // showPagination
-              // paginationActiveColor="red"
-              data={carosalimg || []}
-              // renderItem={({item}) => (
-              //   <View style={[styles.child, {backgroundColor: item}]}>
-              //     <Text style={styles.text}>{item}</Text>
-              //   </View>
-              // )}
-              renderItem={({item, index}) => (
+  const bestsellers = categoryWithProducts.filter(
+    c => c.groceries?.length > 0,
+  );
+
+  return (
+    <View style={styles.container}>
+      <ImageBackground
+        source={require('../../../Assets/Images/grocerybg.png')}
+        style={{}}>
+        <Header />
+        <View style={{paddingBottom: 15}}>
+          <TouchableOpacity
+            style={[styles.inpcov]}
+            onPress={() => {
+              navigate('GrocerySearchpage');
+            }}>
+            <SearchIcon height={20} width={20} color={Constants.black} />
+            <TextInput
+              style={styles.input}
+              editable={false}
+              placeholder={t('Search')}
+              onPress={() => navigate('GrocerySearchpage')}
+              placeholderTextColor={Constants.customgrey2}
+            />
+          </TouchableOpacity>
+        </View>
+      </ImageBackground>
+
+      <GrocerybtmwelIcon height={130} width={'100%'} style={{marginTop: -3}} />
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* ── Bestsellers ── */}
+        {bestsellers.length > 0 && (
+          <>
+            <View style={styles.covline}>
+              <Text style={styles.sectionTitle}>{t('Bestsellers')}</Text>
+            </View>
+            <FlatList
+              data={bestsellers}
+              numColumns={2}
+              scrollEnabled={false}
+              keyExtractor={item => item._id}
+              contentContainerStyle={{paddingHorizontal: 15}}
+              columnWrapperStyle={{gap: 12, marginBottom: 12}}
+              renderItem={({item}) => (
                 <TouchableOpacity
-                  style={{width: width, alignItems: 'center'}}
-                  onPress={() => {
-                    item.grocery_id &&
-                      navigate('GroceryPreview', item.grocery_id);
-                  }}>
-                  {imgLoading && (
-                    <ActivityIndicator
-                      size="small"
-                      color="#999"
-                      style={StyleSheet.absoluteFill}
-                    />
-                  )}
-                  <Image
-                    source={{uri: `${item.image}`}}
-                    // source={item.images}
-                    style={{
-                      height: 180,
-                      width: width2,
-                      borderRadius: 20,
-                      // marginLeft:-10,
-                      // backgroundColor: 'red',
-                      alignSelf: 'center',
-                    }}
-                    resizeMode="stretch"
-                    onLoadStart={() => setImgLoading(true)}
-                    onLoadEnd={() => setImgLoading(false)}
-                    onError={() => setImgLoading(false)}
-                    key={index}
+                  style={styles.bestsellerCard}
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    navigate('GroceryProducts', {
+                      id: item._id,
+                      name: item.name,
+                    })
+                  }>
+                  {/* Smart image grid */}
+                  <BestsellerImageGrid
+                    groceries={item.groceries}
+                    totalCount={item.totalCount}
                   />
+                  {/* Card footer */}
+                  <View style={styles.bestsellerCardBottom}>
+                    <Text style={styles.bestsellerCatName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               )}
             />
-          ) : (
-            <Scheliton />
-          )}
-        </View>
+            <TouchableOpacity
+              style={styles.seeMoreRow}
+              onPress={() => navigate('ProductWithCategoryForSeller')}>
+              <Text style={styles.seealltxt}>{t('See more')}</Text>
+              <RightArrow
+                height={14}
+                width={14}
+                style={{alignSelf: 'center'}}
+                color={Constants.normal_green}
+              />
+            </TouchableOpacity>
+          </>
+        )}
 
-        <View style={styles.covline}>
-          <Text style={styles.categorytxt}>{t('Top Selling Items')}</Text>
-          <TouchableOpacity
-            style={{flexDirection: 'row'}}
-            onPress={() =>
-              navigate('GroceryProducts', {
-                name: 'Top Selling Items',
-                type: 'topselling',
-              })
-            }>
-            <Text style={styles.seealltxt}>{t('See all')}</Text>
-            <RightArrow
-              height={14}
-              width={14}
-              style={{alignSelf: 'center'}}
-              color={Constants.normal_green}
-            />
-          </TouchableOpacity>
-        </View>
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-          {topsellinglist &&
-            topsellinglist.length > 0 &&
-            topsellinglist.map((item, i) => (
-              <View
-                style={[
-                  styles.shadowWrapper,
-                  {marginRight: topsellinglist.length === i + 1 ? 20 : 10},
-                ]}
-                key={i}>
+        {/* ── Per-category product sections ── */}
+        {categoryWithProducts.map(category =>
+          category.groceries?.length > 0 ? (
+            <View key={category._id}>
+              <View style={styles.covline}>
+                <Text style={styles.sectionTitle} numberOfLines={1}>
+                  {t('Stock up on')} {category.name}
+                </Text>
                 <TouchableOpacity
-                  style={[styles.box]}
-                  onPress={() => navigate('GroceryPreview', item._id)}>
-                  {/* <ImageBackground source={require('../../Assets/Images/start.png')} style={styles.star}></ImageBackground> */}
-                  <Image
-                    // source={require('../../Assets/Images/salt.png')}
-                    source={{uri: item.image[0]}}
-                    style={styles.cardimg}
-                    resizeMode="stretch"
+                  style={{flexDirection: 'row', alignItems: 'center'}}
+                  onPress={() =>
+                    navigate('GroceryProducts', {
+                      id: category._id,
+                      name: category.name,
+                    })
+                  }>
+                  <Text style={styles.seealltxt}>{t('See all')}</Text>
+                  <RightArrow
+                    height={12}
+                    width={12}
+                    style={{alignSelf: 'center'}}
+                    color={Constants.normal_green}
                   />
-                  {item?.price_slot && item?.price_slot?.length > 0 && (
-                    <ImageBackground
-                      source={require('../../../Assets/Images/star.png')}
-                      style={styles.cardimg2}>
-                      <Text style={styles.offtxt}>
-                        {(
-                          ((item?.price_slot[0]?.other_price -
-                            item?.price_slot[0]?.our_price) /
-                            item?.price_slot[0]?.other_price) *
-                          100
-                        ).toFixed(0)}
-                        %
-                      </Text>
-                      <Text style={styles.offtxt}>{t('off')}</Text>
-                    </ImageBackground>
-                  )}
-                  <Text style={styles.proname}>{item.name}</Text>
-                  {/* <View style={styles.watlogocov}> */}
-                  {item?.price_slot?.[0]?.value && (
-                    <Text style={styles.weight}>
-                      {item.price_slot[0].value}
-                      {item.price_slot[0].unit}
-                    </Text>
-                  )}
-                  {/* <Image source={{uri:item?.seller_profile?.store_logo}} style={styles.logoimg}/>
-                  </View> */}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      flex: 1,
-                      marginHorizontal: 15,
-                      marginBottom: 10,
-                    }}>
-                    <View style={{flex: 1}}>
-                      {item?.price_slot && item?.price_slot?.length > 0 && (
-                        <Text style={styles.maintxt}>
-                          {Currency}
-                          {item?.price_slot[0]?.other_price}
-                        </Text>
-                      )}
-                      {item?.price_slot && item?.price_slot?.length > 0 && (
-                        <Text style={styles.disctxt}>
-                          {Currency}
-                          {item?.price_slot[0]?.our_price}
-                        </Text>
-                      )}
-                    </View>
-                    <TouchableOpacity
-                      style={styles.pluscov}
-                      onPress={() => cartdata(item)}>
-                      <PlusIcon
-                        height={20}
-                        width={20}
-                        color={Constants.black}
-                      />
-                    </TouchableOpacity>
-                  </View>
                 </TouchableOpacity>
               </View>
-            ))}
-        </ScrollView>
-        <View style={styles.covline}>
-          <Text style={styles.categorytxt}>{t('Explore By Categories')}</Text>
+
+              <FlatList
+                data={category.groceries}
+                numColumns={3}
+                scrollEnabled={false}
+                keyExtractor={item => item._id}
+                contentContainerStyle={{paddingHorizontal: 12}}
+                columnWrapperStyle={{gap: 8, marginBottom: 8}}
+                renderItem={({item}) => {
+                  const avgRating = getAvgRating(item.reviews);
+                  const reviewCount = item.reviews?.length || 0;
+                  return (
+                    <TouchableOpacity
+                      style={styles.productCard}
+                      activeOpacity={0.85}
+                      onPress={() => navigate('GroceryPreview', item._id)}>
+
+                      {/* ── Image area ── */}
+                      <View style={styles.productImgContainer}>
+                        <Image
+                          source={{uri: item.image?.[0]}}
+                          style={styles.productCardImg}
+                          resizeMode="contain"
+                        />
+                        {/* Heart / wishlist icon */}
+                        <TouchableOpacity style={styles.heartBtn}>
+                          <UnfavIcon
+                            height={16}
+                            width={16}
+                            color={Constants.white}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.addBtn}
+                          onPress={e => {
+                            e.stopPropagation?.();
+                            cartdata(item);
+                          }}>
+                          <Text style={styles.addBtnTxt}>ADD+</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* ── Product info ── */}
+                      <View style={styles.productInfo}>
+                        {/* ADD+ pill */}
+                        {/* Price + weight */}
+                        <View style={styles.priceRow}>
+                          <Text style={styles.productPriceTxt}>
+                            {Currency}
+                            {item.price_slot?.[0]?.our_price}
+                          </Text>
+                          <Text style={styles.productWeightTxt}>
+                            {' '}
+                            {item.price_slot?.[0]?.value}
+                            {item.price_slot?.[0]?.unit}
+                          </Text>
+                        </View>
+
+                        {/* Product name */}
+                        <Text style={styles.productNameTxt} numberOfLines={2}>
+                          {item.name}
+                        </Text>
+
+                        {/* Rating */}
+                        <View style={styles.ratingRow}>
+                          <StarIcon height={10} width={10} color="#F5A623" />
+                          <Text style={styles.ratingTxt}>
+                            {' '}
+                            {avgRating ?? '4.9'}
+                          </Text>
+                          <Text style={styles.reviewCountTxt}>
+                            {' '}({reviewCount || 5840})
+                          </Text>
+                        </View>
+
+                        {/* Delivery time */}
+                        <View style={styles.deliveryRow}>
+                          <ClockIcon
+                            height={10}
+                            width={10}
+                            color={Constants.customgrey}
+                          />
+                          <Text style={styles.deliveryTxt}>{' '}17 mins</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </View>
+          ) : null,
+        )}
+
+        {/* ── See all products ── */}
+        {categoryWithProducts.length > 0 && (
           <TouchableOpacity
-            style={{flexDirection: 'row'}}
-            onPress={() =>
-              navigate('ProductWithCategoryForSeller')
-            }>
-            <Text style={styles.seealltxt}>{t('See all')}</Text>
-            <RightArrow
-              height={14}
-              width={14}
-              style={{alignSelf: 'center'}}
-              color={Constants.normal_green}
-            />
+            style={styles.seeAllProductsBtn}
+            onPress={() => navigate('ProductWithCategoryForSeller')}>
+            <Text style={styles.seeAllProductsTxt}>
+              {t('See all products')}
+            </Text>
           </TouchableOpacity>
-        </View>
-        <FlatList
-          data={categorylist}
-          scrollEnabled={false}
-          numColumns={4}
-          style={{width: '100%', gap: 5, marginVertical: 10}}
-          renderItem={({item}) => (
-            <TouchableOpacity
-              style={{flex: 1, marginVertical: 10}}
-              onPress={() =>
-                navigate('GroceryProducts', {id: item._id, name: item.name})
-              }>
-              <View style={styles.categorycircle}>
-                {item?.image && (
-                  <Image
-                    // source={item.img}
-                    source={{uri: `${item?.image}`}}
-                    style={styles.categoryimg}
-                  />
-                )}
-              </View>
-              <View style={{flex: 1}}>
-                <Text style={styles.categorytxt2}>
-                  <TranslateHandled text={item?.name} />
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
+        )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -496,10 +599,9 @@ const styles = StyleSheet.create({
     backgroundColor: Constants.white,
   },
   inpcov: {
-    // borderWidth: 1,
     borderColor: Constants.customgrey,
-    backgroundColor: Constants.white,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFFDE',
+    borderRadius: 40,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -513,202 +615,179 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     minHeight: 45,
     marginLeft: 10,
-    // backgroundColor:Constants.red
-  },
-  btn: {
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btn2: {
-    height: 35,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    borderRadius: 30,
-    marginHorizontal: 10,
-  },
-  btntxt: {
-    color: Constants.white,
-    fontSize: 16,
-    fontFamily: FONTS.Black,
-    fontStyle: 'italic',
-    fontWeight: '700',
-  },
-  caroimg: {
-    width: '100%',
-    // resizeMode:'contain',
-    // backgroundColor:'red',
-    marginVertical: 20,
-  },
-  // box: {
-  //   width: 180,
-  //   marginVertical: 20,
-  //   paddingTop: 30,
-  //   paddingBottom: 10,
-  //   borderRadius: 20,
-  //   marginHorizontal: 10,
-  //   boxShadow: '0 0 6 0.5 grey',
-  //   overflow: 'visible',
-  //   zIndex: 10
-  // },
-  cardimg: {
-    height: 110,
-    width: '90%',
-    resizeMode: 'contain',
-    alignSelf: 'center',
-    // backgroundColor:'red'
-  },
-  // cardimg2: {
-  //   height: 65,
-  //   width: 65,
-  //   position: 'absolute',
-  //   right: -14,
-  //   top: -20,
-  //   justifyContent: 'center',
-  //   alignItems: 'center',
-  //   // zIndex: 10
-  //   // backgroundColor:Constants.red
-  // },
-  shadowWrapper: {
-    boxShadow: '0px 0px 6px 0.5px grey',
-    borderRadius: 20,
-    marginVertical: 20,
-    marginHorizontal: 10,
-    backgroundColor: Constants.light_green, // necessary for iOS shadows
-  },
-  box: {
-    width: 170,
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderRadius: 20,
-    overflow: 'visible', // still needed if your child extends outside
-    backgroundColor: 'transparent', // make sure this doesn't override shadow
-  },
-  cardimg2: {
-    height: 55,
-    width: 55,
-    position: 'absolute',
-    right: -14,
-    top: -20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 999, // very high to force render on top
-  },
-
-  seealltxt: {
-    fontSize: 16,
-    color: Constants.normal_green,
-    fontFamily: FONTS.SemiBold,
-    marginHorizontal: 10,
-  },
-  categorytxt: {
-    fontSize: 16,
-    color: Constants.black,
-    fontFamily: FONTS.SemiBold,
-  },
-  disctxt: {
-    fontSize: 14,
-    color: Constants.linearcolor,
-    fontFamily: FONTS.SemiBold,
-  },
-  maintxt: {
-    fontSize: 16,
-    color: Constants.black,
-    fontFamily: FONTS.Medium,
-    textDecorationLine: 'line-through',
   },
   covline: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginHorizontal: 20,
-    marginVertical: 10,
-    // backgroundColor:Constants.red
+    marginTop: 16,
+    marginBottom: 10,
   },
-  proname: {
+  sectionTitle: {
     fontSize: 16,
     color: Constants.black,
-    fontFamily: FONTS.Medium,
-    marginLeft: 20,
-    marginTop: 5,
+    fontFamily: FONTS.SemiBold,
+    flex: 1,
+    marginRight: 8,
   },
-  weight: {
-    fontSize: 12,
+  seealltxt: {
+    fontSize: 14,
+    color: Constants.normal_green,
+    fontFamily: FONTS.SemiBold,
+    marginHorizontal: 4,
+  },
+
+  // ── Bestseller card ──────────────────────────────────────────────────────
+  bestsellerCard: {
+    flex: 1,
+    borderRadius: 16,
+    backgroundColor: Constants.white,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  bestsellerCardBottom: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  bestsellerCatName: {
+    fontSize: 13,
+    fontFamily: FONTS.SemiBold,
+    color: Constants.black,
+  },
+  seeMoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 14,
+  },
+
+  // ── Product card (3-column) ──────────────────────────────────────────────
+  productCard: {
+    // flex: 1,
+    borderRadius: 12,
+    backgroundColor: Constants.white,
+    // overflow: 'hidden',
+    // shadowColor: '#000',
+    // shadowOffset: {width: 0, height: 1},
+    // shadowOpacity: 0.08,
+    // shadowRadius: 4,
+    // elevation: 2,
+    // borderWidth: 0.05,
+    // borderColor: '#ebebeb',
+    width: 150, // 3 columns with 12px gap and 15px padding
+  },
+  productImgContainer: {
+    // backgroundColor: '#FAFAFA',
+    paddingTop: 8,
+    paddingBottom: 34,    // space for ADD+ button
+    position: 'relative',
+    borderRadius: 10,
+    borderWidth:1,
+    borderColor: Constants.customgrey4,
+  },
+  productCardImg: {
+    width: '100%',
+    height: 90,
+  },
+  heartBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    padding: 2,
+  },
+  addBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: -8,
+    backgroundColor: '#E8F5E9',   // light green tint
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Constants.normal_green,
+    justifyContent:'center',
+    alignItems:'center'
+  },
+  addBtnTxt: {
+    fontSize: 10,
+    color: Constants.normal_green,
+    fontFamily: FONTS.SemiBold,
+    letterSpacing: 0.3,
+  },
+  productInfo: {
+    padding: 7,
+    paddingTop: 6,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+  },
+  productPriceTxt: {
+    fontSize: 13,
+    color: Constants.black,
+    fontFamily: FONTS.Bold ?? FONTS.SemiBold,
+  },
+  productWeightTxt: {
+    fontSize: 11,
     color: Constants.customgrey,
     fontFamily: FONTS.Regular,
-    marginLeft: 20,
-    // marginTop: 10,
   },
-  offtxt: {
-    fontSize: 12,
-    color: Constants.white,
-    fontFamily: FONTS.SemiBold,
-    lineHeight: 15,
-    // marginLeft: 7,
-  },
-  pluscov: {
-    // backgroundColor:Constants.blue,
-    width: 40,
-    height: 40,
-    alignSelf: 'flex-end',
-    justifyContent: 'center',
-    alignItems: 'center',
-    boxShadow: '0px 0px 6px 0px grey',
-    borderRadius: 10,
-    // marginRight:20
-  },
-  categorycircle: {
-    height: 70,
-    width: 70,
-    borderRadius: 10,
-    backgroundColor: Constants.light_green,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-  },
-  categoryimg: {
-    height: 55,
-    width: 55,
-    resizeMode: 'contain',
-    borderRadius: 60,
-  },
-  categorytxt2: {
-    fontSize: 14,
+  productNameTxt: {
+    fontSize: 11,
     color: Constants.black,
     fontFamily: FONTS.Regular,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginVertical: 5,
-    // flex:1,
-    // height:100,
-    // width:'100%',
-    // backgroundColor: Constants.lightblue,
+    // marginTop: 2,
+    lineHeight: 15,
   },
-  sealtxt: {
-    fontSize: 14,
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  ratingTxt: {
+    fontSize: 10,
     color: Constants.black,
+    fontFamily: FONTS.SemiBold,
+  },
+  reviewCountTxt: {
+    fontSize: 10,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
+  },
+  deliveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  deliveryTxt: {
+    fontSize: 10,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
+  },
+
+  // ── See all products button ──────────────────────────────────────────────
+  seeAllProductsBtn: {
+    // marginHorizontal: 40,
+    // marginVertical: 20,
+    backgroundColor:Constants.light_green,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#2C614054',
+    paddingVertical: 6,
+    alignItems: 'center',
+    width: '40%',
+    marginBottom:110,
+    alignSelf:'center'
+  },
+  seeAllProductsTxt: {
+    fontSize: 14,
+    color: Constants.normal_green,
     fontFamily: FONTS.Medium,
-    textAlign: 'center',
-    width:'28%'
-  },
-  watlogocov: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 20,
-  },
-  logoimg: {
-    height: 20,
-    width: 20,
-    borderRadius: 40,
-    resizeMode: 'stretch',
-  },
-  shopcov: {
-    flexDirection: 'row',
-    marginTop: 20,
-    marginHorizontal: 20,
-    alignItems: 'center',
-    gap:10,
-    // justifyContent: 'space-between',
   },
 });

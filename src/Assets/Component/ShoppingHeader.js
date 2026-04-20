@@ -27,8 +27,6 @@ const ShoppingHeader = props => {
 
   return (
     <View style={{ backgroundColor: Constants.normal_green }}>
-      {/* <StatusBar barStyle={Platform.OS==='ios'?"dark-content":"light-content"} backgroundColor={Constants.normal_green} /> */}
-      <StatusBar barStyle="dark-content" />
       <View style={styles.toppart}>
         <View style={styles.firstrow}>
           <TouchableOpacity

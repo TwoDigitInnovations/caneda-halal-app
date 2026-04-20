@@ -828,7 +828,7 @@ const handleplayment = () => {
           height: Dimensions.get('window').height - 200,
         }}>
         {/* <BucketIcon color={Constants.black} height={100} width={100} /> */}
-        <Image source={require('../../../Assets/Images/empty.png')} style={{ height: 100, width: 100 }} />
+        <Image source={require('../../../Assets/Images/empty.png')} style={{ height: 80, width: 80 }} />
         <Text style={styles.carttxt2}>{t("Your Cart is empty")}</Text>
         <Text style={styles.browsprod} onPress={() => navigate('ProductWithCategoryForSeller')}>{t("Browse Products")}</Text>
       </View>}
@@ -1247,7 +1247,7 @@ export default Cart;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Constants.light_green,
+    backgroundColor: Constants.white,
   },
   toppart: {
     backgroundColor: Constants.normal_green,
@@ -1541,7 +1541,7 @@ const styles = StyleSheet.create({
   ////model end/////
   carttxt2: {
     color: Constants.black,
-    fontSize: 18,
+    fontSize: 16,
     // fontWeight: '500',
     marginVertical: 10,
     fontFamily: FONTS.SemiBold,
@@ -1550,13 +1550,13 @@ const styles = StyleSheet.create({
     // flex: 0.5,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
+    paddingVertical: 10,
     paddingHorizontal: 10,
     borderColor: Constants.normal_green,
     borderWidth: 1.5,
     borderRadius: 10,
     color: Constants.normal_green,
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: FONTS.SemiBold,
   },
   dropdown: {

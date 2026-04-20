@@ -99,6 +99,7 @@ import ShoppingWithCategoryForSeller from '../screen/shopping/user/ShoppingWithC
 import { Masjidtab } from './MasjidTab';
 import { Shippingtab } from './ShippingTab';
 import Parcel from '../screen/shipping/Parcel';
+import Cart from '../screen/grocery/app/Cart';
 
 
 
@@ -223,6 +224,7 @@ export default function Navigation(props) {
         <Stack.Screen name="Masjidtab" component={Masjidtab} />
         <Stack.Screen name="Shippingtab" component={Shippingtab} />
         <Stack.Screen name="Parcel" component={Parcel} />
+        <Stack.Screen name="GroceryCart" component={Cart} />
 
       </Stack.Navigator>
       

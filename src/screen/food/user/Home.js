@@ -11,6 +11,7 @@ import {
   StatusBar,
   Switch,
   ImageBackground,
+  Pressable,
 } from 'react-native';
 import React, {useContext, useEffect, useRef, useState} from 'react';
 import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
@@ -60,18 +61,10 @@ const ImageCarousel = ({images, hasDiscount, isFreeDelivery, item, onToggleFav, 
   return (
     <View
       style={styles.cardImgWrap}
+      onPress={()=>{onTap()}}
       onLayout={e => {
         const w = e.nativeEvent.layout.width;
         if (w > 0) setImgWidth(w);
-      }}
-      // onTouchStart / onTouchEnd fire in capture phase before the
-      // responder system runs, so we always see both events.
-      onTouchStart={() => { tapCancelled.current = false; }}
-      // When ScrollView claims a horizontal drag it calls
-      // onResponderGrant on itself, which triggers onTouchCancel here.
-      onTouchCancel={() => { tapCancelled.current = true; }}
-      onTouchEnd={() => {
-        if (!tapCancelled.current) onTap();
       }}>
       {imgWidth > 0 && (
         <ScrollView
@@ -127,6 +120,7 @@ const ImageCarousel = ({images, hasDiscount, isFreeDelivery, item, onToggleFav, 
       {/* Fav button has its own responder — doesn't bubble to onTouchEnd */}
       <TouchableOpacity
         style={styles.favBtn}
+        onPressIn={() => { tapCancelled.current = true; }}
         onPress={() => onToggleFav(item?._id)}>
         <UnfavIcon
           color={item?.isFavorite ? '#F14141' : 'rgba(0,0,0,0.35)'}
@@ -149,7 +143,7 @@ const RestaurantCard = ({item, onToggleFav}) => {
   const goToPreview = () => navigate('PreView', item?._id);
 
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={goToPreview}>
       <ImageCarousel
         images={images.length > 0 ? images : ['']}
         hasDiscount={item?.discount}
@@ -195,7 +189,7 @@ const RestaurantCard = ({item, onToggleFav}) => {
           </View>
         )}
       </TouchableOpacity>
-    </View>
+    </Pressable>
   );
 };
 
@@ -303,7 +297,7 @@ const Home = () => {
       {/* ── Top Bar ── */}
       <ImageBackground source={require('../../../Assets/Images/foodbaner.png')}
           style={styles.bannerImg}>
-            <View style={{backgroundColor:'#64748B24',opacity:0.8}}>
+            <View style={{backgroundColor:'rgba(100, 116, 139, 0.24)',paddingTop:15}}>
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.locationRow}
@@ -626,7 +620,7 @@ const styles = StyleSheet.create({
   },
   bannerImg: {
     width: '100%',
-    paddingVertical:15,
+    paddingBottom:15,
     // height: 300,
   },
   bannerOverlay: {

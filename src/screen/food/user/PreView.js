@@ -15,7 +15,6 @@ import {
   BackIcon,
   Cart2Icon,
   Clock2Icon,
-  ClockIcon,
   Location2Icon,
   MinusIcon,
   PlusIcon,
@@ -28,7 +27,6 @@ import {GetApi, Post} from '../../../Assets/Helpers/Service';
 import {
   FoodCartContext,
   LoadContext,
-  ToastContext,
   UserContext,
 } from '../../../../App';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -52,6 +50,7 @@ const MostOrderedCard = ({item, foodcartdetail, setfoodcartdetail, Currency, t})
     image: item.image?.[0],
     qty: 1,
     seller_id: item.sellerid,
+    seller_name: item.seller_profile?.store_name || '',
     seller_profile: item.seller_profile?._id || item.seller_profile,
     seller_location: item.seller_profile?.location,
   });
@@ -109,7 +108,21 @@ const MostOrderedCard = ({item, foodcartdetail, setfoodcartdetail, Currency, t})
           </View>
         ) : null}
         <Text style={styles.productDesc} numberOfLines={2}>{item.description}</Text>
-        {qty > 0 ? (
+        
+      </View>
+      <View style={styles.productRight}>
+        {item.discount ? (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountBadgeText}>{item.discount}% OFF</Text>
+          </View>
+        ) : null}
+        <Image
+          source={item.image?.[0] ? {uri: item.image[0]} : require('../../../Assets/Images/barger3.png')}
+          style={styles.productImg}
+          resizeMode="cover"
+        />
+        <View style={styles.addbtn}>
+          {qty > 0 ? (
           <View style={styles.stepper}>
             <TouchableOpacity style={styles.stepperBtn} onPress={decrease}>
               <MinusIcon color={Constants.normal_green} width={14} height={14} />
@@ -124,18 +137,7 @@ const MostOrderedCard = ({item, foodcartdetail, setfoodcartdetail, Currency, t})
             <Text style={styles.addBtnText}>+ {t('ADD')}</Text>
           </TouchableOpacity>
         )}
-      </View>
-      <View style={styles.productRight}>
-        {item.discount ? (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountBadgeText}>{item.discount}% OFF</Text>
-          </View>
-        ) : null}
-        <Image
-          source={item.image?.[0] ? {uri: item.image[0]} : require('../../../Assets/Images/barger3.png')}
-          style={styles.productImg}
-          resizeMode="cover"
-        />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -145,13 +147,11 @@ const PreView = props => {
   const {t} = useTranslation();
   const food_id = props?.route?.params;
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [toast, setToast] = useContext(ToastContext);
-  const [loading, setLoading] = useContext(LoadContext);
+  const [, setLoading] = useContext(LoadContext);
   const [foodcartdetail, setfoodcartdetail] = useContext(FoodCartContext);
-  const [user, setUser] = useContext(UserContext);
+  const [user] = useContext(UserContext);
   const [productdata, setproductdata] = useState();
   const [mostOrdered, setMostOrdered] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('All');
 
   // Derived — always in sync with the live cart context, no useEffect needed
   const availableQty =
@@ -173,7 +173,7 @@ const PreView = props => {
           const sellerId = res.data?.sellerid;
           if (sellerId) {
             GetApi(
-              `getTopFoodBySeller/${sellerId}?excludeId=${food_id}&limit=10&userId=${user?._id}`,
+              `getTopFoodBySeller/${sellerId}?excludeIds=${food_id}&limit=10&userId=${user?._id}`,
             ).then(
               r => { if (r.status) setMostOrdered(r.data);console.log('most ordered', r); },
               err => console.log('mostOrdered err', err),
@@ -213,6 +213,7 @@ const PreView = props => {
     image: productdata.image?.[0],
     qty,
     seller_id: productdata.sellerid,
+    seller_name: productdata?.seller_profile?.store_name || '',
     seller_profile: productdata?.seller_profile?._id,
     seller_location: productdata?.seller_profile?.location,
   });
@@ -272,10 +273,6 @@ const PreView = props => {
     (sum, item) => sum + (item.qty || 0),
     0,
   );
-  const totalCartPrice = foodcartdetail.reduce(
-    (sum, item) => sum + (item.qty || 0) * (item.price || 0),
-    0,
-  );
 
   const images = productdata?.image || [];
   const rating = productdata?.averageRating
@@ -290,11 +287,6 @@ const PreView = props => {
 
   return (
     <View style={styles.root}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="light-content"
-      />
 
       {/* ── Hero Image ── */}
       <View style={styles.imgContainer}>
@@ -328,7 +320,7 @@ const PreView = props => {
             style={styles.favBtnHero}
             onPress={() => togglefav(productdata?._id)}>
             <UnfavIcon
-              color={productdata?.isFavorite ? '#F14141' : Constants.white}
+              color={productdata?.isFavorite ? '#F14141' : 'rgba(0,0,0,0.35)'}
               width={20}
               height={20}
             />
@@ -467,9 +459,10 @@ const PreView = props => {
             </Text>
           </View>
           <TouchableOpacity
-            style={{alignItems:'center',gap:10}}
+            style={styles.viewtxt}
             onPress={() => navigate('Foodtab', {screen: 'Cart'})}>
-            <Text style={styles.viewCartTxt}>{t('View Cart')} <RightArrow color='#fff'  /></Text>
+            <Text style={styles.viewCartTxt}>{t('View Cart')} </Text>
+            <RightArrow color='#fff'  />
           </TouchableOpacity>
         </View>
       )}
@@ -531,7 +524,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingTop: 8,
   },
   backBtn: {
     width: 36,
@@ -727,10 +720,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: Constants.customgrey5,
+    paddingTop: 14,
+    // borderTopWidth: 1,
+    // borderTopColor: Constants.customgrey5,
+    paddingBottom: 24,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginBottom: 12,
     gap: 12,
+    boxShadow: '0px 0px 5px 0.2px rgba(0,0,0,0.1)',
   },
   productLeft: {
     flex: 1,
@@ -750,10 +748,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   productName: {
-    fontSize: 15,
+    fontSize: 17,
     fontFamily: FONTS.SemiBold,
     color: Constants.dark_green,
-    marginBottom: 5,
   },
   priceRow: {
     flexDirection: 'row',
@@ -762,8 +759,8 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   discountedPrice: {
-    fontSize: 15,
-    fontFamily: FONTS.Bold,
+    fontSize: 16,
+    fontFamily: FONTS.SemiBold,
     color: Constants.black,
   },
   originalPrice: {
@@ -780,26 +777,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addBtn: {
-    borderWidth: 1.5,
-    borderColor: Constants.normal_green,
+    borderWidth: 1,
+    borderColor: '#2C61401A',
     borderRadius: 8,
     paddingHorizontal: 20,
-    paddingVertical: 6,
+    paddingVertical: 2,
     alignSelf: 'flex-start',
+    backgroundColor: Constants.white,
+    boxShadow : '0px 1px 3px 0.2px rgba(0,0,0,0.1)',
   },
   addBtnText: {
     fontSize: 14,
-    fontFamily: FONTS.SemiBold,
+    fontFamily: FONTS.Bold,
     color: Constants.normal_green,
   },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Constants.normal_green,
     borderRadius: 8,
     alignSelf: 'flex-start',
     overflow: 'hidden',
+    backgroundColor: Constants.white,
+    borderWidth: 1,
+    borderColor: '#2C61401A',
+    boxShadow: '0px 0px 2px 0.2px rgba(0,0,0,0.1)',
   },
   stepperBtn: {
     paddingHorizontal: 12,
@@ -809,8 +810,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONTS.SemiBold,
     color: Constants.normal_green,
-    minWidth: 28,
+    // minWidth: 28,
     textAlign: 'center',
+  },
+  addbtn:{
+    position:'absolute',
+    bottom: -12,
+    zIndex: 99,
   },
   productRight: {
     width: 110,
@@ -906,4 +912,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.Regular,
     color: Constants.customgrey2,
   },
+  viewtxt:{
+    alignItems:'center',
+    gap:5,
+    flexDirection:'row',
+    // backgroundColor: Constants.normal_green,
+  },
+  
 });

@@ -107,3 +107,7 @@ export { default as CalendarUpIcon } from '../src/Assets/Icon/calendarup.svg';
 export { default as CalendarDownIcon } from '../src/Assets/Icon/calendardown.svg';
 export { default as SquareCheckIcon } from '../src/Assets/Icon/squarecheck.svg';
 export { default as TimerIcon } from '../src/Assets/Icon/timer.svg';
+export { default as GrocerybtmwelIcon } from '../src/Assets/Icon/grocerybtmwel.svg';
+export { default as CategoryIcon } from '../src/Assets/Icon/category.svg';
+export { default as Shop2Icon } from '../src/Assets/Icon/shop2.svg';
+export { default as Profile4Icon } from '../src/Assets/Icon/profile4.svg';

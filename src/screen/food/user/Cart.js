@@ -5,7 +5,9 @@ import {
   ImageBackground,
   Keyboard,
   Modal,
+  Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -22,11 +24,15 @@ import React, {
 } from 'react';
 import Constants, {Currency, FONTS, Googlekey} from '../../../Assets/Helpers/constant';
 import {
+  BackIcon,
+  CartIcon,
   CrossIcon,
   DateIcon,
   DeleteIcon,
   DiscountIcon,
+  DownarrowIcon,
   InfoIcon,
+  Location2Icon,
   MinusIcon,
   PlusIcon,
   Thik2Icon,
@@ -87,6 +93,7 @@ const Cart = () => {
   const [seldonation, setseldonation] = useState('');
   const [showtimeslot, setshowtimeslot] = useState();
   const [showbottomsheet, setshowbottomsheet] = useState(true);
+  const [completeYourMeal, setCompleteYourMeal] = useState([]);
   const shaloowarray = [...foodcartdetail];
   const snapPoints = useMemo(() => ['75%','80%','85%','95%'], []);
   const renderBackdrop = useCallback(
@@ -128,14 +135,25 @@ const Cart = () => {
   }, []);
 
   useEffect(() => {
-    {
-      foodcartdetail &&
-        foodcartdetail.length > 0 &&
-        fooduserProfile?.shipping_address?.location &&
-        calculateDistance();
+    if (foodcartdetail?.length > 0 && fooduserProfile?.shipping_address?.location) {
+      calculateDistance();
     }
     getallcoupon();
+    fetchCompleteYourMeal();
   }, []);
+
+  const fetchCompleteYourMeal = () => {
+    const sellerId = foodcartdetail?.[0]?.seller_id;
+    if (!sellerId) return;
+    // Exclude all food IDs already in the cart
+    const excludeIds = foodcartdetail.map(i => i.foodid).filter(Boolean).join(',');
+    GetApi(
+      `getTopFoodBySeller/${sellerId}?excludeIds=${excludeIds}&limit=10&userId=${user?._id}`,
+    ).then(
+      res => { if (res.status) setCompleteYourMeal(res.data); },
+      err => console.log('completeYourMeal err', err),
+    );
+  };
 
   const submit = (paymentid) => {
     setLoading(true);
@@ -387,18 +405,75 @@ const Cart = () => {
     );
   };
 
+  const restaurantName = foodcartdetail?.[0]?.seller_name || '';
+
+  const locationLabel = fooduserProfile?.shipping_address?.address
+    ? `${fooduserProfile?.shipping_address?.house_no
+        ? fooduserProfile.shipping_address.house_no + ' • '
+        : ''}${fooduserProfile.shipping_address.address}`
+    : locationadd || t('Set location');
+
+  // Haversine delivery time — same formula as backend
+  const deliveryTime = (() => {
+    const coords = foodcartdetail?.[0]?.seller_location?.coordinates;
+    const uCoords = fooduserProfile?.shipping_address?.location?.coordinates;
+    if (!coords || !uCoords || coords.length < 2 || uCoords.length < 2) return null;
+    const [sLng, sLat] = coords;
+    const [uLng, uLat] = uCoords;
+    const R = 6371;
+    const dLat = ((sLat - uLat) * Math.PI) / 180;
+    const dLng = ((sLng - uLng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((uLat * Math.PI) / 180) *
+        Math.cos((sLat * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
+    const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const raw = 15 + Math.round(distKm * 5);
+    const lo = Math.ceil(raw / 5) * 5;
+    return `${lo - 5}-${lo} MINS`;
+  })();
+
   return (
     <View style={styles.container}>
       <GestureHandlerRootView style={{flex: 1}}>
-        <Text style={styles.headtxt}>
-          {t("My Cart")}
-        </Text>
+
+        {/* ── Header — only when cart has items ── */}
+        {foodcartdetail?.length > 0 && (
+          <View style={styles.cartHeader}>
+            <TouchableOpacity style={styles.cartBackBtn} onPress={() => goBack()}>
+              <BackIcon color={Constants.dark_green} width={20} height={20} />
+            </TouchableOpacity>
+
+            <View style={styles.cartHeaderCenter}>
+              <Text style={styles.cartRestaurantName} numberOfLines={1}>
+                {restaurantName}
+              </Text>
+              <TouchableOpacity
+                style={styles.cartLocationRow}
+                onPress={() => navigate('Shipping')}>
+                {deliveryTime && (
+                  <Text style={styles.cartDeliveryTime}>{deliveryTime} • </Text>
+                )}
+                <Location2Icon color={Constants.customgrey3} width={12} height={12} />
+                <Text style={styles.cartLocationText} numberOfLines={1}>
+                  {' '}{locationLabel}
+                </Text>
+                <DownarrowIcon color={Constants.dark_green} width={12} height={12} />
+              </TouchableOpacity>
+            </View>
+
+            {/* <TouchableOpacity style={styles.cartInfoBtn}>
+              <InfoIcon color={Constants.dark_green} width={20} height={20} />
+            </TouchableOpacity> */}
+          </View>
+        )}
         {foodcartdetail && foodcartdetail.length > 0 ? (
           <ScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="always"
             style={{padding: 20}}>
-            <View style={styles.rowbetw}>
+            {/* <View style={styles.rowbetw}>
               <View style={{width: '50%'}}>
                 <Text
                   style={styles.deltxt}>
@@ -413,9 +488,9 @@ const Cart = () => {
               <Text style={styles.cngtxt} onPress={() => navigate('Shipping')}>
                 {t("Change Location")}
               </Text>
-            </View>
+            </View> */}
             
-            <View style={{marginTop: 20}}>
+            <View >
               {foodcartdetail.map((item, i) => (
                 <View
                   key={i}
@@ -427,8 +502,8 @@ const Cart = () => {
                   {/* <View style={{marginLeft: 10, flex: 1}}> */}
                     
                     <View style={styles.rowbetw}>
-                      <View style={{width:'80%'}}>
-                    <Text style={styles.deltxt2} numberOfLines={2}>fgoihn ftjn ftinh iotnh rtinhr roithn rtoihn frthnp forithmn </Text>
+                      <View style={{width:'75%'}}>
+                    <Text style={styles.deltxt2} numberOfLines={2}>{item?.foodname}</Text>
                       <View style={styles.qtycov}>
                         <TouchableOpacity
                           style={[
@@ -511,6 +586,85 @@ const Cart = () => {
                 </View>
               ))}
             </View>
+
+            {completeYourMeal?.length > 0 && (
+              <View style={styles.completeSection}>
+                <Text style={styles.completeSectionTitle}>{t('Complete your meal with')}</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.completeSectionScroll}>
+                  {completeYourMeal.map((meal, idx) => {
+                    const mealQty = foodcartdetail.find(f => f.foodid === meal._id)?.qty || 0;
+                    return (
+                      <View key={idx} style={styles.mealCard}>
+                        <Image
+                          source={{uri: meal?.image?.[0]}}
+                          style={styles.mealCardImage}
+                        />
+                        <Text style={styles.mealCardName} numberOfLines={2}>{meal?.name}</Text>
+                        <View style={styles.mealCardBottom}>
+                          <Text style={styles.mealCardPrice}>{Currency}{meal?.price}</Text>
+                          {mealQty > 0 ? (
+                            <View style={styles.mealStepper}>
+                              <TouchableOpacity
+                                style={styles.mealStepBtn}
+                                onPress={async () => {
+                                  let updated;
+                                  if (mealQty === 1) {
+                                    updated = foodcartdetail.filter(f => f.foodid !== meal._id);
+                                  } else {
+                                    updated = foodcartdetail.map(f =>
+                                      f.foodid === meal._id ? {...f, qty: f.qty - 1} : f
+                                    );
+                                  }
+                                  setfoodcartdetail(updated);
+                                  await AsyncStorage.setItem('foodcartdata', JSON.stringify(updated));
+                                }}>
+                                <MinusIcon color={Constants.normal_green} width={10} height={10} />
+                              </TouchableOpacity>
+                              <Text style={styles.mealStepQty}>{mealQty}</Text>
+                              <TouchableOpacity
+                                style={styles.mealStepBtn}
+                                onPress={async () => {
+                                  const updated = foodcartdetail.map(f =>
+                                    f.foodid === meal._id ? {...f, qty: f.qty + 1} : f
+                                  );
+                                  setfoodcartdetail(updated);
+                                  await AsyncStorage.setItem('foodcartdata', JSON.stringify(updated));
+                                }}>
+                                <PlusIcon color={Constants.normal_green} width={10} height={10} />
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              style={styles.mealAddBtn}
+                              onPress={async () => {
+                                const newItem = {
+                                  foodid: meal._id,
+                                  foodname: meal.name,
+                                  price: meal.price,
+                                  image: meal.image?.[0],
+                                  qty: 1,
+                                  seller_id: meal.sellerid,
+                                  seller_name: meal.seller_profile?.store_name || '',
+                                  seller_profile: meal.seller_profile?._id || meal.seller_profile,
+                                  seller_location: meal.seller_profile?.location,
+                                };
+                                const updated = [...foodcartdetail, newItem];
+                                setfoodcartdetail(updated);
+                                await AsyncStorage.setItem('foodcartdata', JSON.stringify(updated));
+                              }}>
+                              <PlusIcon color={Constants.normal_green} width={12} height={12} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
 
             {!appliedCoupon?.discount && (
               <View style={styles.aplcov}>
@@ -746,7 +900,7 @@ const Cart = () => {
                 </View>
               )}
               <View style={styles.rowbetw2}>
-                <Text style={styles.deltxt}>{t("Final")}</Text>
+                <Text style={styles.deltxt}>{t("Grand Total")}</Text>
                 <Text style={styles.deltxt2}>
                   {Currency}
                   {(
@@ -760,20 +914,21 @@ const Cart = () => {
               </View>
             </View>
             {!selfPickup && (
-              <View>
-                <ImageBackground
-                  source={require('../../../Assets/Images/bgimg2.png')}
+              <View style={styles.tipcov}>
+                <View
+                  // source={require('../../../Assets/Images/bgimg2.png')}
                   style={{
-                    height: 100,
-                    width: '120%',
+                    // height: 100,
+                    // width: '120%',
                     borderRadius: 10,
                     justifyContent: 'space-between',
                     paddingLeft: 15,
                     flexDirection: 'row',
-                    paddingRight: '15%',
-                    alignItems: 'flex-end',
-                    marginTop: 20,
-                    marginLeft:-20
+                    // paddingRight: '7%',
+                    // alignItems: 'flex-end',
+                    // marginTop: 20,
+                    // marginLeft:-20,
+                    // paddingHorizontal:15
                   }}
                   resizeMode="cover">
                   <View>
@@ -787,10 +942,10 @@ const Cart = () => {
                     </Text>
                   </View>
                   <Image
-                    source={require('../../../Assets/Images/bgtop.png')}
-                    style={{height: 70, width: 70}}
+                    source={require('../../../Assets/Images/bgtop3.png')}
+                    style={{ width: 160,position:'absolute',right:-20,top:0}}
                   />
-                </ImageBackground>
+                </View>
                 <ScrollView
                   horizontal={true}
                   keyboardShouldPersistTaps="handled"
@@ -856,7 +1011,7 @@ const Cart = () => {
                     }}>
                     {Currency}10
                   </Text>
-                  <View style={{height: 40}}>
+                  <View >
                     {seldonation === 'Other' ? (
                       <View style={styles.tipamt2}>
                         <Text style={styles.tipcur}>{Currency}</Text>
@@ -891,6 +1046,7 @@ const Cart = () => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       marginTop: 10,
+                      marginHorizontal:10
                     }}>
                     <Text style={styles.wartxt}>
                       {Number(donation) > 99 &&
@@ -924,7 +1080,14 @@ const Cart = () => {
                     : navigate('Shipping');
                 }
               }}>
-              <Text style={styles.btntxt}>{t("Order Now")}</Text>
+                <CartIcon color={Constants.white} height={18} width={18} />
+              <Text style={[styles.btntxt,{lineHeight:18}]}>{t("Place Order • ")} {Currency}{(
+                    totalsum +
+                    (totalsum * 5) / 100 +
+                    (!selfPickup ? Number(deliveryfee || 0) : 0) +
+                    (!selfPickup ? Number(donation || 0) : 0) -
+                    (appliedCoupon?.discount ? appliedCoupon?.discount : 0)
+                  ).toFixed(2)}</Text>
             </TouchableOpacity>
           </ScrollView>
         ) : (
@@ -1328,6 +1491,141 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.SemiBold,
     textAlign: 'center',
   },
+
+  /* ── Cart header ── */
+  cartHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    // paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 10 : 10,
+    paddingVertical:10,
+    paddingBottom: 12,
+    backgroundColor: Constants.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Constants.customgrey5,
+  },
+  cartBackBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Constants.customgrey4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartHeaderCenter: {
+    flex: 1,
+    // alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  cartRestaurantName: {
+    fontSize: 17,
+    fontFamily: FONTS.Bold,
+    color: Constants.dark_green,
+    marginBottom: 2,
+  },
+  cartLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  cartLocationText: {
+    fontSize: 11,
+    fontFamily: FONTS.Regular,
+    color: Constants.customgrey3,
+    maxWidth: '60%',
+  },
+  cartInfoBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Constants.customgrey4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  /* ── Complete your meal with ── */
+  completeSection: {
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  completeSectionTitle: {
+    fontSize: 15,
+    fontFamily: FONTS.SemiBold,
+    color: Constants.black,
+    marginBottom: 12,
+  },
+  completeSectionScroll: {
+    paddingBottom: 4,
+    gap: 12,
+  },
+  mealCard: {
+    width: 130,
+    borderRadius: 14,
+    backgroundColor: Constants.white,
+    borderWidth: 1,
+    borderColor: Constants.customgrey5 || '#EFEFEF',
+    overflow: 'hidden',
+    paddingBottom: 10,
+  },
+  mealCardImage: {
+    width: '100%',
+    height: 90,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+  mealCardName: {
+    fontSize: 12,
+    fontFamily: FONTS.SemiBold,
+    color: Constants.black,
+    marginHorizontal: 8,
+    marginTop: 6,
+    marginBottom: 6,
+    lineHeight: 16,
+  },
+  mealCardBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+  },
+  mealCardPrice: {
+    fontSize: 12,
+    fontFamily: FONTS.Bold,
+    color: Constants.dark_green,
+  },
+  mealAddBtn: {
+    backgroundColor: '#2C61401A',
+    borderRadius: 7,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mealStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2C61400D',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2C61401A',
+    paddingHorizontal: 4,
+    height: 28,
+    gap: 4,
+  },
+  mealStepBtn: {
+    padding: 2,
+  },
+  mealStepQty: {
+    fontSize: 11,
+    fontFamily: FONTS.Bold,
+    color: Constants.black,
+    minWidth: 14,
+    textAlign: 'center',
+  },
+  cartDeliveryTime: {
+    fontSize: 11,
+    fontFamily: FONTS.SemiBold,
+    color: Constants.customgrey3,
+  },
   qtycov:{
     borderWidth: 1,
     borderColor: '#2C61401A',
@@ -1362,8 +1660,8 @@ const styles = StyleSheet.create({
   },
   deltxt: {
     fontSize: 14,
-    color: Constants.customgrey2,
-    fontFamily: FONTS.SemiBold,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Medium,
   },
   deltxt2: {
     fontSize: 14,
@@ -1374,6 +1672,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Constants.customgrey,
     fontFamily: FONTS.Medium,
+    marginTop:10
   },
   tiptxt2: {
     fontSize: 14,
@@ -1414,6 +1713,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 25,
     marginBottom: 120,
+    flexDirection:'row',
+    gap:10
   },
   btncov2: {
     height: 55,
@@ -1491,7 +1792,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.SemiBold,
   },
   btmbox: {
-    // borderWidth: 1,
+    borderWidth: 1,
+    borderColor: Constants.customgrey4,
     padding: 10,
     borderRadius: 15,
     marginTop: 20,
@@ -1568,21 +1870,23 @@ const styles = StyleSheet.create({
   },
   tipamt: {
     color: Constants.customgrey2,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: FONTS.Medium,
     borderWidth: 1.5,
     borderColor: Constants.customgrey2,
     borderRadius: 10,
-    paddingHorizontal: 23,
-    paddingTop: 7,
-    paddingBottom: 3,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+    lineHeight: 14,
     marginLeft: 10,
+    alignSelf:'center'
   },
   tipcur: {
     color: Constants.normal_green,
     fontSize: 14,
     fontFamily: FONTS.Medium,
     alignSelf: 'center',
+    lineHeight: 14,
   },
   wartxt: {
     color: Constants.red,
@@ -1597,24 +1901,34 @@ const styles = StyleSheet.create({
   },
   donationinp: {
     color: Constants.normal_green,
-    fontSize: 16,
-    // lineHeight: 10,
+    fontSize: 14,
+    lineHeight: 14,
     fontFamily: FONTS.Medium,
     // borderBottomWidth:1.5,
     // borderColor: Constants.normal_green,
-    height: 40,
-    paddingVertical: 0,
+    // height: 40,
+    paddingVertical: 2,
     // marginBottom:7,
     // minWidth: 30,
+    alignSelf:'center',
+    maxHeight: 20,
   },
   tipamt2: {
     borderWidth: 1.5,
     borderColor: Constants.normal_green,
     borderRadius: 10,
     paddingHorizontal: 23,
-    // paddingVertical:10,
+    paddingVertical:7,
     marginLeft: 10,
     flexDirection: 'row',
+    alignItems:'center'
+  },
+  tipcov: {
+    borderWidth:1,
+    borderColor: Constants.customgrey4,
+    marginTop:10,
+    borderRadius:15,
+    overflow:'hidden',
   },
   accoptcov: {
     flexDirection: 'row',

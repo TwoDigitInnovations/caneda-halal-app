@@ -26,7 +26,7 @@ const Styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'column',
         justifyContent: 'space-around',
-        backgroundColor: '#rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         zIndex: 9999,
         // backgroundColor:'red'
     },
