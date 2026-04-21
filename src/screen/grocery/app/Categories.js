@@ -40,7 +40,7 @@ const GroceryShops = () => {
 
   const getnearbyshops = (key = '') => {
     setIsLoading(true);
-    const url = key ? `getGrocery?key=${encodeURIComponent(key)}` : `getGrocery`;
+    const url = key ? `getGroceryCategory?key=${encodeURIComponent(key)}` : `getGroceryCategory`;
     GetApi(url)
       .then(async res => {
         setIsLoading(false);
@@ -67,8 +67,8 @@ const GroceryShops = () => {
           navigate('GroceryProducts', {id: item?._id, name: item?.name})
         }>
         <View style={styles.imageWrapper}>
-        {item?.image?.length>0&&  <Image
-            source={{uri: item?.image[0]}}
+        {item?.image&&  <Image
+            source={{uri: item?.image}}
             style={styles.coverImage}
             resizeMode="stretch"
           />}

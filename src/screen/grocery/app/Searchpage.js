@@ -2,7 +2,6 @@ import {
   Dimensions,
   FlatList,
   Image,
-  ImageBackground,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -14,8 +13,12 @@ import React, {createRef, useContext, useEffect, useRef, useState} from 'react';
 import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
 import {
   BackIcon,
+  ClockIcon,
+  MinusIcon,
   PlusIcon,
   SearchIcon,
+  StarIcon,
+  UnfavIcon,
 } from '../../../../Theme';
 import {
   GroceryCartContext,
@@ -152,6 +155,26 @@ if (existingCart.length > 0) {
     // navigate('Cart');
   };
 
+  const decreaseQty = async productdata => {
+    const existingCart = Array.isArray(grocerycartdetail) ? grocerycartdetail : [];
+    const cartItem = existingCart.find(
+      f => f.productid === productdata._id && f.price_slot?.value === productdata.price_slot?.[0]?.value,
+    );
+    if (!cartItem) return;
+    const updatedCart =
+      cartItem.qty <= 1
+        ? existingCart.filter(
+            f => !(f.productid === productdata._id && f.price_slot?.value === productdata.price_slot?.[0]?.value),
+          )
+        : existingCart.map(f =>
+            f.productid === productdata._id && f.price_slot?.value === productdata.price_slot?.[0]?.value
+              ? {...f, qty: f.qty - 1}
+              : f,
+          );
+    setgrocerycartdetail(updatedCart);
+    await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
+  };
+
   const mixedStyle = {
     body: {
       whiteSpace: 'normal',
@@ -199,11 +222,13 @@ if (existingCart.length > 0) {
         </View>
         
       </View>
-      
+      <View style={{width:'100%',flex:1}}>
       <FlatList
         data={productlist}
         numColumns={2}
-        style={{paddingRight: 20, marginLeft: 5, paddingTop: 10, flex: 1}}
+        style={{flex: 1}}
+        contentContainerStyle={{paddingHorizontal: 12, paddingTop: 10}}
+        columnWrapperStyle={{gap: 8, marginBottom: 8}}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={() => (
           <View
@@ -212,75 +237,79 @@ if (existingCart.length > 0) {
               justifyContent: 'center',
               height: Dimensions.get('window').height - 200,
             }}>
-            <Text
-              style={{
-                color: Constants.black,
-                fontSize: 20,
-                fontFamily: FONTS.Medium,
-              }}>
-              {t("No Products")}
+            <Text style={{color: Constants.black, fontSize: 20, fontFamily: FONTS.Medium}}>
+              {t('No Products')}
             </Text>
           </View>
         )}
-        // style={{gap:'2%'}}
-        renderItem={({item}, i) => (
-          <View style={styles.shadowWrapper} key={i}>
+        renderItem={({item}) => {
+          const avgRating =
+            item.reviews?.length > 0
+              ? (item.reviews.reduce((s, r) => s + (r.rating || 0), 0) / item.reviews.length).toFixed(1)
+              : null;
+          const reviewCount = item.reviews?.length || 0;
+          const cartItem = grocerycartdetail?.find(
+            f => f.productid === item._id && f.price_slot?.value === item.price_slot?.[0]?.value,
+          );
+          return (
             <TouchableOpacity
-              style={styles.box}
+              style={styles.productCard}
+              activeOpacity={0.85}
               onPress={() => navigate('GroceryPreview', item._id)}>
-              <Image
-                // source={require('../../Assets/Images/salt.png')}
-                source={{uri: item.image[0]}}
-                style={styles.cardimg}
-                resizeMode="stretch"
-              />
-              {item?.price_slot && item?.price_slot?.length > 0 && (
-                <ImageBackground
-                  source={require('../../../Assets/Images/star.png')}
-                  style={styles.cardimg2}>
-                  <Text style={styles.offtxt}>
-                    {(
-                      ((item?.price_slot[0]?.other_price -
-                        item?.price_slot[0]?.our_price) /
-                        item?.price_slot[0]?.other_price) *
-                      100
-                    ).toFixed(0)}
-                    %
-                  </Text>
-                  <Text style={styles.offtxt}>{t("off")}</Text>
-                </ImageBackground>
-              )}
-              <Text style={styles.proname}>{item.name}</Text>
-              {item?.price_slot?.[0]?.value && (
-                <Text style={styles.weight}>
-                  {item.price_slot[0].value}
-                  {item.price_slot[0].unit}
-                </Text>
-              )}
-              <View style={{flexDirection: 'row', flex: 1, marginHorizontal: 15,marginBottom:10,}}>
-                <View style={{flex: 1}}>
-                  {item?.price_slot && item?.price_slot?.length > 0 && (
-                    <Text style={styles.maintxt}>
-                      {Currency}
-                      {item?.price_slot[0]?.other_price}
-                    </Text>
-                  )}
-                  {item?.price_slot && item?.price_slot?.length > 0 && (
-                    <Text style={styles.disctxt}>
-                      {Currency}
-                      {item?.price_slot[0]?.our_price}
-                    </Text>
-                  )}
-                </View>
-                <TouchableOpacity
-                  style={styles.pluscov}
-                  onPress={() => cartdata(item)}>
-                  <PlusIcon height={20} width={20} color={Constants.black} />
+              <View style={styles.productImgContainer}>
+                <Image
+                  source={{uri: item.image?.[0]}}
+                  style={styles.productCardImg}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity style={styles.heartBtn}>
+                  <UnfavIcon height={16} width={16} color={Constants.white} />
                 </TouchableOpacity>
+                {cartItem?.qty > 0 ? (
+                  <View style={styles.stepperBtn}>
+                    <TouchableOpacity
+                      style={styles.stepperTouch}
+                      onPress={e => { e.stopPropagation?.(); decreaseQty(item); }}>
+                      <MinusIcon color={Constants.normal_green} height={10} width={10} />
+                    </TouchableOpacity>
+                    <Text style={styles.stepperQty}>{cartItem.qty}</Text>
+                    <TouchableOpacity
+                      style={styles.stepperTouch}
+                      onPress={e => { e.stopPropagation?.(); cartdata(item); }}>
+                      <PlusIcon color={Constants.normal_green} height={10} width={10} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.addBtn}
+                    onPress={e => { e.stopPropagation?.(); cartdata(item); }}>
+                    <Text style={styles.addBtnTxt}>ADD+</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.productInfo}>
+                <View style={styles.priceRow}>
+                  <Text style={styles.productPriceTxt}>
+                    {Currency}{item.price_slot?.[0]?.our_price}
+                  </Text>
+                  <Text style={styles.productWeightTxt}>
+                    {' '}{item.price_slot?.[0]?.value}{item.price_slot?.[0]?.unit}
+                  </Text>
+                </View>
+                <Text style={styles.productNameTxt} numberOfLines={2}>{item.name}</Text>
+                <View style={styles.ratingRow}>
+                  <StarIcon height={10} width={10} color="#F5A623" />
+                  <Text style={styles.ratingTxt}> {avgRating ?? '4.9'}</Text>
+                  <Text style={styles.reviewCountTxt}> ({reviewCount || 5840})</Text>
+                </View>
+                <View style={styles.deliveryRow}>
+                  <ClockIcon height={10} width={10} color={Constants.customgrey} />
+                  <Text style={styles.deliveryTxt}> 17 mins</Text>
+                </View>
               </View>
             </TouchableOpacity>
-          </View>
-        )}
+          );
+        }}
         onEndReached={() => {
           if (productlist && productlist.length > 0) {
             fetchNextPage();
@@ -288,6 +317,7 @@ if (existingCart.length > 0) {
         }}
         onEndReachedThreshold={0.05}
       />
+      </View>
     </SafeAreaView>
   );
 };
@@ -326,99 +356,120 @@ const styles = StyleSheet.create({
     padding: 20,
     flexDirection: 'row',
   },
-  cardimg: {
-    height: 110,
-    width: '90%',
-    resizeMode: 'contain',
-    alignSelf: 'center',
-    // backgroundColor:'red'
+  productCard: {
+    width: (Dimensions.get('window').width - 32) / 2,
+    borderRadius: 12,
+    backgroundColor: Constants.white,
   },
-  shadowWrapper: {
-    boxShadow: '0px 0px 6px 0.5px grey',
-    borderRadius: 20,
-    marginVertical: 20,
-    marginHorizontal: 10,
-    backgroundColor: Constants.light_green, // necessary for iOS shadows
-    width: '47%',
+  productImgContainer: {
+    paddingTop: 8,
+    paddingBottom: 34,
+    position: 'relative',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Constants.customgrey4,
   },
-  box: {
+  productCardImg: {
     width: '100%',
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderRadius: 20,
-    overflow: 'visible', // still needed if your child extends outside
-    backgroundColor: 'transparent', // make sure this doesn't override shadow
+    height: 110,
   },
-  cardimg2: {
-    height: 55,
-    width: 55,
+  heartBtn: {
     position: 'absolute',
-    right: -14,
-    top: -20,
+    top: 6,
+    right: 6,
+    padding: 2,
+  },
+  addBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: -8,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Constants.normal_green,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999, // very high to force render on top
   },
-
-  seealltxt: {
-    fontSize: 16,
+  addBtnTxt: {
+    fontSize: 10,
     color: Constants.normal_green,
     fontFamily: FONTS.SemiBold,
-    marginHorizontal: 10,
+    letterSpacing: 0.3,
   },
-  categorytxt: {
-    fontSize: 16,
-    color: Constants.black,
-    fontFamily: FONTS.SemiBold,
-  },
-  disctxt: {
-    fontSize: 14,
-    color: Constants.linearcolor,
-    fontFamily: FONTS.SemiBold,
-  },
-  maintxt: {
-    fontSize: 16,
-    color: Constants.black,
-    fontFamily: FONTS.Medium,
-    textDecorationLine: 'line-through',
-  },
-  covline: {
+  stepperBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: -8,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Constants.normal_green,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginVertical: 10,
-    // backgroundColor:Constants.red
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+    gap: 4,
   },
-  proname: {
-    fontSize: 16,
+  stepperTouch: {
+    padding: 2,
+  },
+  stepperQty: {
+    fontSize: 10,
+    color: Constants.normal_green,
+    fontFamily: FONTS.SemiBold,
+    minWidth: 12,
+    textAlign: 'center',
+  },
+  productInfo: {
+    padding: 7,
+    paddingTop: 6,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+  },
+  productPriceTxt: {
+    fontSize: 13,
     color: Constants.black,
-    fontFamily: FONTS.Medium,
-    marginLeft: 20,
-    marginTop: 5,
+    fontFamily: FONTS.SemiBold,
   },
-  weight: {
-    fontSize: 12,
+  productWeightTxt: {
+    fontSize: 11,
     color: Constants.customgrey,
     fontFamily: FONTS.Regular,
-    marginLeft: 20,
-    // marginTop: 10,
   },
-  offtxt: {
-    fontSize: 12,
-    color: Constants.white,
-    fontFamily: FONTS.SemiBold,
+  productNameTxt: {
+    fontSize: 11,
+    color: Constants.black,
+    fontFamily: FONTS.Regular,
     lineHeight: 15,
-    // marginLeft: 7,
   },
-  pluscov: {
-    // backgroundColor:Constants.blue,
-    width: 40,
-    height: 40,
-    alignSelf: 'flex-end',
-    justifyContent: 'center',
+  ratingRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    boxShadow: '0px 0px 6px 0px grey',
-    borderRadius: 10,
-    // marginRight:20
+    marginTop: 2,
+  },
+  ratingTxt: {
+    fontSize: 10,
+    color: Constants.black,
+    fontFamily: FONTS.SemiBold,
+  },
+  reviewCountTxt: {
+    fontSize: 10,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
+  },
+  deliveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  deliveryTxt: {
+    fontSize: 10,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
   },
 });

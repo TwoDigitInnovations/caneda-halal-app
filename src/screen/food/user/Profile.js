@@ -26,6 +26,7 @@ import {
   LogoutIcon,
   Notification2Icon,
   NotificationIcon,
+  OrderIcon,
   PrivacyIcon,
   ProfileIcon,
   RightArrow,
@@ -297,7 +298,7 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             onPress={()=>navigate('FoodOrders')}>
             <View style={styles.btmboxfirpart}>
               <View style={styles.iconcov}>
-                <ProfileIcon height={20} width={20} color={Constants.normal_green}/>
+                <OrderIcon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{t('My Orders')}</Text>
             </View>

@@ -62,6 +62,7 @@ import GrocerySellerOrder from '../screen/grocery/seller/History';
 import GroceryWithdraw from '../screen/grocery/seller/Withdraw';
 import GroceryTransaction from '../screen/grocery/seller/Transaction';
 import GrocerySellerProfile from '../screen/grocery/seller/Profile';
+import GrocerySellerReviews from '../screen/grocery/seller/Reviews';
 import { Shoppingtab } from './ShoppingUserTab';
 import { ShoppingSellerTab } from './ShoppingSellerTab';
 import ShoppingSellerForm from '../screen/shopping/seller/ShoppingSellerForm';
@@ -195,6 +196,7 @@ export default function Navigation(props) {
         <Stack.Screen name="GroceryWithdraw" component={GroceryWithdraw} />
         <Stack.Screen name="GroceryTransaction" component={GroceryTransaction} />
         <Stack.Screen name="GrocerySellerProfile" component={GrocerySellerProfile} />
+        <Stack.Screen name="GrocerySellerReviews" component={GrocerySellerReviews} />
         <Stack.Screen name="Shoppingtab" component={Shoppingtab} />
 
         <Stack.Screen name="ShoppingSellerTab" component={ShoppingSellerTab} />

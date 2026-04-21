@@ -14,10 +14,10 @@ import React, {useContext, useEffect, useState} from 'react';
 import {SwiperFlatList} from 'react-native-swiper-flatlist';
 import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GroceryCartContext, LoadContext, ToastContext} from '../../../../App';
-import {BackIcon, CartIcon, MinusIcon, Plus2Icon} from '../../../../Theme';
+import { GroceryCartContext, LoadContext, ToastContext, UserContext} from '../../../../App';
+import {BackIcon, CartIcon, MinusIcon, Plus2Icon, StarIcon, UnfavIcon} from '../../../../Theme';
 import {goBack, navigate} from '../../../../navigationRef';
-import {GetApi} from '../../../Assets/Helpers/Service';
+import {GetApi, Post} from '../../../Assets/Helpers/Service';
 import moment from 'moment';
 import DriverHeader from '../../../Assets/Component/DriverHeader';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +31,7 @@ const GroceryPreview = props => {
   const [grocerycartdetail, setgrocerycartdetail] = useContext(GroceryCartContext);
   const [toast, setToast] = useContext(ToastContext);
   const [loading, setLoading] = useContext(LoadContext);
+  const [user] = useContext(UserContext);
   const [selectedslot, setsselectedslot] = useState();
   const [productdata, setproductdata] = useState();
   const [isInCart, setIsInCart] = useState(false);
@@ -80,9 +81,20 @@ const GroceryPreview = props => {
   }, [grocerycartdetail, productdata, selectedslot]);
 
 
+  const togglefav = (id) => {
+    Post(`grocerytogglefavorite`, { groceryid: id }).then(
+      async res => {
+        if (res.status) {
+          setproductdata(prev => ({ ...prev, isFavorite: !prev?.isFavorite }));
+        }
+      },
+      err => console.log(err),
+    );
+  };
+
   const getProductById = () => {
     setLoading(true);
-    GetApi(`getGroceryById/${productid}`).then(
+    GetApi(`getGroceryById/${productid}${user?._id ? `?userId=${user._id}` : ''}`).then(
       async res => {
         setLoading(false);
         console.log(res);
@@ -259,12 +271,23 @@ const GroceryPreview = props => {
                       </View>
                     )}
                   />
-                   {/* <TouchableOpacity style={styles.faviconcov} onPress={() => togglefav(productdata?._id)}>
-                                <UnfavIcon color={productdata?.isFavorite?'#F14141':null}/>
-                              </TouchableOpacity> */}
+                  <TouchableOpacity style={styles.faviconcov} onPress={() => togglefav(productdata?._id)}>
+                    <UnfavIcon color={productdata?.isFavorite ? '#F14141' : null}/>
+                  </TouchableOpacity>
                   {productdata?.image&&productdata?.image.length>0&&<CustomPagination data={productdata?.image} index={currentIndex} />}
                 </View>
         <Text style={styles.proname}>{productdata?.name}</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 6, gap: 8}}>
+          {productdata?.averageRating && (
+            <View style={styles.ratingBadge}>
+              <StarIcon color={'#fff'} width={12} height={12} />
+              <Text style={styles.ratingText}>{Number(productdata.averageRating).toFixed(1)}</Text>
+            </View>
+          )}
+          {productdata?.totalReviews > 0 && (
+            <Text style={styles.reviewCount}>{t('By')} {productdata.totalReviews}+ {t('people')}</Text>
+          )}
+        </View>
         <Text style={[styles.dectitle,{marginLeft:10}]}>{productdata?.short_description}</Text>
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
           {productdata?.price_slot &&
@@ -601,6 +624,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Constants.linearcolor,
     fontFamily: FONTS.Medium,
+  },
+  faviconcov: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 20,
+    padding: 6,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Constants.normal_green,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    gap: 3,
+  },
+  ratingText: {
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: FONTS.SemiBold,
+  },
+  reviewCount: {
+    fontSize: 12,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
   },
   addcov: {
     flexDirection: 'row',

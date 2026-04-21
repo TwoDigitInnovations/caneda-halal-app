@@ -259,15 +259,15 @@ const [selectLanguage, setSelectLanguage] = useState('English');
           />
         </TouchableOpacity>
       </View>
-      {/* <View style={styles.card}>
+      <View style={styles.card}>
       <TouchableOpacity
           style={[styles.box]}
-          onPress={() => navigate('Reviews')}>
+          onPress={() => navigate('GrocerySellerReviews')}>
           <View style={styles.btmboxfirpart}>
             <View style={styles.iconcov}>
               <StarIcon height={20} width={20} color={'#18CFE8'}/>
             </View>
-            <Text style={styles.protxt}>User Reviews</Text>
+            <Text style={styles.protxt}>{t("User Reviews")}</Text>
           </View>
           <RightArrow
             color={Constants.customgrey2}
@@ -276,7 +276,7 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             style={styles.aliself}
           />
         </TouchableOpacity>
-      </View> */}
+      </View>
       <View style={[styles.card,{marginBottom:80}]}>
       <TouchableOpacity
           style={[styles.box]}

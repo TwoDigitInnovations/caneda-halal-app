@@ -13,6 +13,7 @@ import {
 import React, {useContext, useEffect, useState} from 'react';
 import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
 import {
+  MinusIcon,
   PlusIcon,
   RightArrow,
   SearchIcon,
@@ -366,6 +367,26 @@ const Home = () => {
     setToast('Successfully added to cart.');
   };
 
+  const decreaseQty = async productdata => {
+    const existingCart = Array.isArray(grocerycartdetail) ? grocerycartdetail : [];
+    const cartItem = existingCart.find(
+      f => f.productid === productdata._id && f.price_slot?.value === productdata.price_slot?.[0]?.value,
+    );
+    if (!cartItem) return;
+    const updatedCart =
+      cartItem.qty <= 1
+        ? existingCart.filter(
+            f => !(f.productid === productdata._id && f.price_slot?.value === productdata.price_slot?.[0]?.value),
+          )
+        : existingCart.map(f =>
+            f.productid === productdata._id && f.price_slot?.value === productdata.price_slot?.[0]?.value
+              ? {...f, qty: f.qty - 1}
+              : f,
+          );
+    setgrocerycartdetail(updatedCart);
+    await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
+  };
+
   const getAvgRating = reviews => {
     if (!reviews || reviews.length === 0) return null;
     const avg =
@@ -515,14 +536,32 @@ const Home = () => {
                             color={Constants.white}
                           />
                         </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.addBtn}
-                          onPress={e => {
-                            e.stopPropagation?.();
-                            cartdata(item);
-                          }}>
-                          <Text style={styles.addBtnTxt}>ADD+</Text>
-                        </TouchableOpacity>
+                        {(() => {
+                          const cartItem = grocerycartdetail?.find(
+                            f => f.productid === item._id && f.price_slot?.value === item.price_slot?.[0]?.value,
+                          );
+                          return cartItem?.qty > 0 ? (
+                            <View style={styles.stepperBtn}>
+                              <TouchableOpacity
+                                style={styles.stepperTouch}
+                                onPress={e => { e.stopPropagation?.(); decreaseQty(item); }}>
+                                <MinusIcon color={Constants.normal_green} height={10} width={10} />
+                              </TouchableOpacity>
+                              <Text style={styles.stepperQty}>{cartItem.qty}</Text>
+                              <TouchableOpacity
+                                style={styles.stepperTouch}
+                                onPress={e => { e.stopPropagation?.(); cartdata(item); }}>
+                                <PlusIcon color={Constants.normal_green} height={10} width={10} />
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              style={styles.addBtn}
+                              onPress={e => { e.stopPropagation?.(); cartdata(item); }}>
+                              <Text style={styles.addBtnTxt}>ADD+</Text>
+                            </TouchableOpacity>
+                          );
+                        })()}
                       </View>
 
                       {/* ── Product info ── */}
@@ -718,6 +757,30 @@ const styles = StyleSheet.create({
     color: Constants.normal_green,
     fontFamily: FONTS.SemiBold,
     letterSpacing: 0.3,
+  },
+  stepperBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: -8,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Constants.normal_green,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  stepperTouch: {
+    padding: 2,
+  },
+  stepperQty: {
+    fontSize: 10,
+    color: Constants.normal_green,
+    fontFamily: FONTS.SemiBold,
+    minWidth: 12,
+    textAlign: 'center',
   },
   productInfo: {
     padding: 7,

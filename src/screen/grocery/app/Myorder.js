@@ -78,9 +78,9 @@ const GroceryOrders = () => {
   };
 
   const addreview = () => {
-    let url = `addreview`;
+    let url = `groceryaddreview`;
     const data = {
-      foodid: selfoodid,
+      groceryid: selfoodid,
       rating: rating,
       comment: review,
       userProfile: groceryuserProfile._id,
@@ -224,14 +224,16 @@ const GroceryOrders = () => {
                   <View style={{ marginLeft: 10, flex: 1 }}>
                     <View style={styles.covline}>
                       <Text style={styles.ordtxt1} numberOfLines={2}>{prod?.grocery_name}</Text>
-                      {/* <Text style={styles.revtxt} onPress={() => {
-                        setModalVisible(true), setselfoodid(prod?.food_id?._id); if (prod?.food_id?.reviews.some(r => r.userId === user._id)) {
-                          setrating(prod?.food_id?.reviews.find(r => r.userId === user._id)?.rating);
-                          setreview(prod?.food_id?.reviews.find(r => r.userId === user._id)?.comment);
-                          setalreadyrated(true)
+                      {item?.status === 'Delivered' && <Text style={styles.revtxt} onPress={() => {
+                        setModalVisible(true); setselfoodid(prod?.grocery_id?._id);
+                        if (prod?.grocery_id?.reviews?.some(r => String(r.userId) === String(user._id))) {
+                          setrating(prod?.grocery_id?.reviews.find(r => String(r.userId) === String(user._id))?.rating);
+                          setreview(prod?.grocery_id?.reviews.find(r => String(r.userId) === String(user._id))?.comment);
+                          setalreadyrated(true);
+                        } else {
+                          setalreadyrated(false); setrating(''); setreview('');
                         }
-                        else{setalreadyrated(false),setrating(''),setreview('')}
-                      }}>{prod?.food_id?.reviews.some(r => String(r.userId) === String(user._id)) ? 'Show review' : 'Add review'}</Text> */}
+                      }}>{prod?.grocery_id?.reviews?.some(r => String(r.userId) === String(user._id)) ? t('Show review') : t('Add review')}</Text>}
                     </View>
                     <View style={styles.covline}>
                       <Text style={styles.ordtxt2}>{Currency} {item.total}</Text>
