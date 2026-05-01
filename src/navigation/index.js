@@ -104,6 +104,12 @@ import { Masjidtab } from './MasjidTab';
 import { Shippingtab } from './ShippingTab';
 import Parcel from '../screen/shipping/Parcel';
 import Cart from '../screen/grocery/app/Cart';
+import { Flighttab } from './FlightTab';
+import FlightResults from '../screen/flight/FlightResults';
+import FlightDetail from '../screen/flight/FlightDetail';
+import FlightBooking from '../screen/flight/FlightBooking';
+import FlightTicketDetail from '../screen/flight/FlightTicketDetail';
+import FlightPersonalData from '../screen/flight/FlightPersonalData';
 
 
 
@@ -233,6 +239,12 @@ export default function Navigation(props) {
         <Stack.Screen name="Shippingtab" component={Shippingtab} />
         <Stack.Screen name="Parcel" component={Parcel} />
         <Stack.Screen name="GroceryCart" component={Cart} />
+        <Stack.Screen name="Flighttab" component={Flighttab} />
+        <Stack.Screen name="FlightResults" component={FlightResults} />
+        <Stack.Screen name="FlightDetail" component={FlightDetail} />
+        <Stack.Screen name="FlightBooking" component={FlightBooking} />
+        <Stack.Screen name="FlightTicketDetail" component={FlightTicketDetail} />
+        <Stack.Screen name="FlightPersonalData" component={FlightPersonalData} />
 
       </Stack.Navigator>
       

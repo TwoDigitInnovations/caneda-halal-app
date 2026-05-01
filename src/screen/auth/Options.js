@@ -101,6 +101,11 @@ const Options = props => {
     // );
   };
 
+  const getFlightProfile = () => {
+    navigate('Flighttab');
+  };
+
+
   const getCombinedProfile = async () => {
     setLoading(true);
     try {
@@ -256,6 +261,24 @@ const Options = props => {
             />
             <Text style={styles.txt}>{t('Food Delivery')}</Text>
           </TouchableOpacity>
+        </View>
+         <View style={styles.boxcov}>
+          <TouchableOpacity style={styles.box} onPress={() => getFlightProfile()}>
+            <Image
+              source={require('../../Assets/Images/online-booking.png')}
+              style={styles.img}
+            />
+            <Text style={styles.txt}>{t('Flight Booking')}</Text>
+          </TouchableOpacity>
+           {/* <TouchableOpacity
+            style={styles.box}
+            onPress={() => getCombinedProfile()}>
+            <Image
+              source={require('../../Assets/Images/delivery.png')}
+              style={styles.img}
+            />
+            <Text style={styles.txt}>{t('Food Delivery')}</Text>
+          </TouchableOpacity> */}
         </View>
         <Text style={styles.headtxt}>{t('Today’s Promotions')}</Text>
         {/* <Image
