@@ -4,6 +4,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {History2Icon, HistoryIcon, Home3Icon, Notification2Icon, SettingsIcon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
 import { useTranslation } from 'react-i18next';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 import Home from '../screen/shipping/Home';
 import Notification from '../screen/shipping/Notification';
 import Setting from '../screen/shipping/Setting';
@@ -14,6 +15,7 @@ import History from '../screen/shipping/History';
 const Tab = createBottomTabNavigator();
 
 export const  Shippingtab=()=>{
+  useModuleStatusBar({bg: Constants.dark_green, barStyle: 'light-content'});
  const { t } = useTranslation();
   const TabArr = [
     {

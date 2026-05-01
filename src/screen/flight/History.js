@@ -277,9 +277,13 @@ const FlightHistory = () => {
     getCancellationCharges({BookingId: String(bookingId), RequestType: '1'})
       .then(res => {
         console.log(res)
-
-        setFetchingChargesId(null);
-        setChargeModal({visible: true, item, charges: res?.data ?? res, requestType: 1, cancellationType: 2});
+         const response = res.data.Response;
+          setFetchingChargesId(null);
+        if(response?.ResponseStatus === 1){
+                setChargeModal({visible: true, item, charges: res?.data ?? res, requestType: 1, cancellationType: 2});
+        }else{
+        Alert.alert(response?.Error?.ErrorMessage || 'Something wrong. please try again')
+        }
       })
       .catch(() => {
         setFetchingChargesId(null);
@@ -464,7 +468,7 @@ const s = StyleSheet.create({
   backArrow: {fontSize: 22, color: Constants.white, fontFamily: FONTS.Bold, lineHeight: 26},
   headerTitle: {fontSize: 20, fontFamily: FONTS.Bold, color: Constants.white},
 
-  list: {padding: 14, gap: 12, paddingBottom: 110},
+  list: {padding: 14, gap: 12, paddingBottom: 80},
 
   card: {
     backgroundColor: Constants.white,

@@ -4,6 +4,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {NotesIcon,Home3Icon,  Location3Icon,  Profile3Icon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
 import { useTranslation } from 'react-i18next';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 import Home from '../screen/masjid/Home';
 import Mosques from '../screen/masjid/Mosques';
 import Services from '../screen/masjid/Services';
@@ -14,6 +15,7 @@ import Profile from '../screen/masjid/Profile';
 const Tab = createBottomTabNavigator();
 
 export const  Masjidtab=()=>{
+  useModuleStatusBar({bg: Constants.dark_green, barStyle: 'light-content'});
  const { t } = useTranslation();
   const TabArr = [
     {

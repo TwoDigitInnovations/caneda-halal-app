@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback, useContext} from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,14 @@ import {
   StatusBar,
   Modal,
   Linking,
+  Image,
 } from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Svg, Path, Rect, Circle} from 'react-native-svg';
 import Constants, {FONTS} from '../../Assets/Helpers/constant';
+import {GetApi} from '../../Assets/Helpers/Service';
+import {UserContext} from '../../../App';
 import {navigate, reset} from '../../../navigationRef';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
@@ -110,9 +114,20 @@ const MenuItem = ({icon, title, onPress}) => (
 );
 
 const FlightSetting = () => {
+  const [user] = useContext(UserContext);
+  const [profile, setProfile] = useState({});
   const [logoutModal, setLogoutModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [logoutDest, setLogoutDest] = useState('main');
+
+  useFocusEffect(
+    useCallback(() => {
+      GetApi('getProfile/FLIGHTUSER').then(
+        res => { if (res?.data) setProfile(res.data); },
+        () => {},
+      );
+    }, []),
+  );
 
   const handleLogout = async () => {
     setLogoutModal(false);
@@ -162,10 +177,14 @@ const FlightSetting = () => {
         {/* avatar */}
         <View style={s.profileSection}>
           <View style={s.avatarWrap}>
-            <AvatarPlaceholder />
+            {profile.image
+              ? <Image source={{uri: profile.image}} style={s.avatarImage} />
+              : <AvatarPlaceholder />}
           </View>
-          <Text style={s.profileName}>Name</Text>
-          <Text style={s.profileEmail}>name@email.com</Text>
+          <Text style={s.profileName}>{profile.username || user?.username || 'Name'}</Text>
+          {(profile.email || user?.email)
+            ? <Text style={s.profileEmail}>{profile.email || user?.email}</Text>
+            : null}
         </View>
 
         {/* menu sections */}
@@ -183,7 +202,7 @@ const FlightSetting = () => {
           </View>
         ))}
 
-        <View style={{height: 110}} />
+        <View style={{height: 80}} />
       </ScrollView>
 
       {/* logout modal */}
@@ -206,34 +225,14 @@ const FlightSetting = () => {
             <Text style={s.modalSubtitle}>Where do you want to go after logging out?</Text>
             <RadioButton.Group onValueChange={v => setLogoutDest(v)} value={logoutDest}>
               <View style={s.radioRow}>
-                <RadioButton.Item
-                  mode="android"
-                  label="Main Menu"
-                  value="main"
-                  position="leading"
-                  style={s.radioItem}
-                  color={Constants.dark_green}
-                  uncheckedColor={Constants.black}
-                  labelStyle={{
-                    color: logoutDest === 'main' ? Constants.dark_green : Constants.black,
-                    fontSize: 15,
-                    fontFamily: FONTS.Medium,
-                  }}
-                />
-                <RadioButton.Item
-                  mode="android"
-                  label="Log In"
-                  value="login"
-                  position="leading"
-                  style={s.radioItem}
-                  color={Constants.dark_green}
-                  uncheckedColor={Constants.black}
-                  labelStyle={{
-                    color: logoutDest === 'login' ? Constants.dark_green : Constants.black,
-                    fontSize: 15,
-                    fontFamily: FONTS.Medium,
-                  }}
-                />
+                <TouchableOpacity style={s.radioOption} activeOpacity={0.7} onPress={() => setLogoutDest('main')}>
+                  <RadioButton value="main" color={Constants.dark_green} />
+                  <Text style={[s.radioLabel, logoutDest === 'main' && s.radioLabelActive]}>Main Menu</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.radioOption} activeOpacity={0.7} onPress={() => setLogoutDest('login')}>
+                  <RadioButton value="login" color={Constants.dark_green} />
+                  <Text style={[s.radioLabel, logoutDest === 'login' && s.radioLabelActive]}>Log In</Text>
+                </TouchableOpacity>
               </View>
             </RadioButton.Group>
             <View style={s.modalActions}>
@@ -311,6 +310,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 12,
   },
+  avatarImage: {width: 84, height: 84, borderRadius: 42},
   profileName: {
     fontSize: 17,
     fontFamily: FONTS.SemiBold,
@@ -396,8 +396,10 @@ const s = StyleSheet.create({
     marginBottom: 4,
     textAlign: 'center',
   },
-  radioRow: {flexDirection: 'row', justifyContent: 'center', marginTop: 4},
-  radioItem: {flex: 1},
+  radioRow: {flexDirection: 'row', justifyContent: 'center', marginTop: 8, gap: 8},
+  radioOption: {flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'center'},
+  radioLabel: {fontSize: 15, fontFamily: FONTS.Medium, color: Constants.black},
+  radioLabelActive: {color: Constants.dark_green},
   modalActions: {
     flexDirection: 'row',
     gap: 10,

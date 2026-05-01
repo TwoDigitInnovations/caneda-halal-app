@@ -3,9 +3,12 @@ import DrawerContent from '../Assets/Component/DrawerContent';
 import Home from '../screen/ride/user/Home';
 import SelectRide from '../screen/ride/user/SelectRide';
 import RideDetail from '../screen/ride/user/RideDetail';
+import Constants from '../Assets/Helpers/constant';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 const Drawer = createDrawerNavigator();
 
 export default function SideMenu() {
+  useModuleStatusBar({bg: Constants.dark_green, barStyle: 'light-content'});
   return (
     <Drawer.Navigator
       // initialRouteName="SideMenu"

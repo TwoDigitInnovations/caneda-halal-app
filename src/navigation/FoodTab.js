@@ -11,6 +11,7 @@ import {
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Cart2Icon, Home2Icon, Profile2Icon, ProfileIcon, ShopIcon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 import Home from '../screen/food/user/Home';
 import Cart from '../screen/food/user/Cart';
 import Profile from '../screen/food/user/Profile';
@@ -31,6 +32,7 @@ const PILL_HEIGHT = 48;
 const PILL_TOP = (TAB_BAR_H - (Platform.OS === 'ios' ? 20 : 0) - PILL_HEIGHT) / 2;
 
 export const Foodtab = () => {
+  useModuleStatusBar({bg: '#ffffff', barStyle: 'dark-content'});
   const { t } = useTranslation();
   const [foodcartdetail] = useContext(FoodCartContext);
   const slideAnim = useRef(new Animated.Value(0)).current;

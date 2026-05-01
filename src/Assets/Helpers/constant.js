@@ -3,7 +3,7 @@ import { GOOGLE_KEY, MASJID_KEY, PROD_TOKEN as _PROD_TOKEN } from './keys';
 // const prodUrl = 'http://192.168.0.215:3000/v1/api/';
 // const prodUrl = 'http://192.168.1.102:3000/v1/api/';
 //  const prodUrl = 'http://192.168.81.1:3000/v1/api/';
- const prodUrl = 'http://192.168.0.104:3008/v1/api/';
+ const prodUrl = 'http://192.168.1.13:3008/v1/api/';
 // const prodUrl = 'https://api.chmp.world/v1/api/';
 
 let apiUrl = prodUrl;

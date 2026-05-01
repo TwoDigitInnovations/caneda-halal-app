@@ -9,6 +9,7 @@ import {
 } from '../../Theme';
 import Constants, {FONTS} from '../Assets/Helpers/constant';
 import {useTranslation} from 'react-i18next';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 import FlightHome from '../screen/flight/Home';
 import FlightHistory from '../screen/flight/History';
 import FlightNotification from '../screen/flight/Notification';
@@ -17,6 +18,7 @@ import FlightSetting from '../screen/flight/Setting';
 const Tab = createBottomTabNavigator();
 
 export const Flighttab = () => {
+  useModuleStatusBar({bg: Constants.dark_green, barStyle: 'light-content'});
   const {t} = useTranslation();
 
   const TabArr = [
@@ -78,7 +80,7 @@ export const Flighttab = () => {
         tabBarStyle: {
           position: 'absolute',
           width: '100%',
-          height: Platform.OS === 'ios' ? 100 : 90,
+          height: Platform.OS === 'ios' ? 80 : 65,
           backgroundColor: Constants.dark_green,
           borderTopRightRadius: 15,
           borderTopLeftRadius: 15,
@@ -117,9 +119,9 @@ const styles = StyleSheet.create({
   },
   tabtxt: {
     color: Constants.white,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: FONTS.Medium,
-    marginTop: 5,
+    marginTop: 2,
   },
   iconcov: {
     height: 45,

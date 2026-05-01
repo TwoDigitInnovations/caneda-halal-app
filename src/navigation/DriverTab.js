@@ -3,6 +3,7 @@ import {Animated, Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {AccountIcon, CarIcon, HelmateIcon, HistoryIcon,  Profile2Icon,  ProfileIcon,  WorkIcon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 import Work from '../screen/ride/driver/Work';
 import Notification from '../screen/ride/driver/Notification';
 import DriverAccount from '../screen/ride/driver/DriverAccount';
@@ -14,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 const Tab = createBottomTabNavigator();
 
 export const  Drivertab=()=>{
+  useModuleStatusBar({bg: '#ffffff', barStyle: 'dark-content'});
  const { t } = useTranslation();
   const TabArr = [
     {

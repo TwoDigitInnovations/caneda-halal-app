@@ -3,6 +3,7 @@ import {Animated, Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import { GridIcon, Notification2Icon, PlusIcon, ProfileIcon, ThreelineIcon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 import Home from '../screen/shopping/seller/Home';
 import Shoppinglist from '../screen/shopping/seller/ShoppingList';
 import CreateShopping from '../screen/shopping/seller/CreateShopping';
@@ -14,7 +15,7 @@ import Account from '../screen/shopping/seller/Account';
 const Tab = createBottomTabNavigator();
 
 export const  ShoppingSellerTab=()=>{
- 
+  useModuleStatusBar({bg: '#ffffff', barStyle: 'dark-content'});
   const TabArr = [
     {
       iconActive: <GridIcon color={Constants.dark_green} height={25} width={25} />,

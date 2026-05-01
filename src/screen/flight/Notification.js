@@ -95,7 +95,7 @@ const s = StyleSheet.create({
   backArrow: {fontSize: 22, color: Constants.white, fontFamily: FONTS.Bold, lineHeight: 26},
   headerTitle: {fontSize: 20, fontFamily: FONTS.Bold, color: Constants.white},
 
-  list: {padding: 14, gap: 12, paddingBottom: 110},
+  list: {padding: 14, gap: 12, paddingBottom: 80},
 
   card: {
     backgroundColor: Constants.white,

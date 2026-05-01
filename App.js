@@ -44,6 +44,7 @@ export const LocationUpdateContext = React.createContext('');
 export const LocationDataContext = React.createContext('');
 export const ProfileStatusContext = React.createContext('');
 export const ShippingDataContext = React.createContext('');
+export const StatusBarContext = React.createContext({});
 
 const App = () => {
   const [initial, setInitial] = useState('');
@@ -70,6 +71,7 @@ const App = () => {
   const [deliveryriderProfile, setdeliveryriderProfile] = useState('');
   const [shippingdata, setshippingdata] = useState('');
   const [language, setLanguage] = useState('en');
+  const [statusBarConfig, setStatusBarConfig] = useState({bg: Constants.dark_green, barStyle: 'light-content'});
 
   const APP_ID = 'bbbe5e58-a216-4d80-ab22-09fc127aef1e';
   useEffect(() => {
@@ -270,6 +272,7 @@ const App = () => {
       // urlScheme="your-url-scheme" // required for 3D Secure and bank redirects
       // merchantIdentifier="merchant.com.adnuser" // required for Apple pay
     >
+      <StatusBarContext.Provider value={[statusBarConfig, setStatusBarConfig]}>
       <Context.Provider value={[initial, setInitial]}>
       <ProfileStatusContext.Provider value={[profileStatus, setProfileStatus]}>
         <TranslatorContext.Provider value={[language, setLanguage]}>
@@ -322,14 +325,14 @@ const App = () => {
                                         <LocationDataContext.Provider
                                           value={[latlong, setlatlong]}>
                                           <SafeAreaView
-                                            style={styles.container}>
+                                            style={[styles.container, {backgroundColor: statusBarConfig.bg}]}>
                                             <Spinner
                                               color={'#fff'}
                                               visible={loading}
                                             />
                                             <StatusBar
-                                              barStyle="dark-content"
-                                              backgroundColor={'white'}
+                                              barStyle={statusBarConfig.barStyle}
+                                              backgroundColor={statusBarConfig.bg}
                                             />
                                             {initial !== '' && (
                                               <Navigation initial={initial} />
@@ -360,6 +363,7 @@ const App = () => {
         </TranslatorContext.Provider>
       </ProfileStatusContext.Provider>
       </Context.Provider>
+      </StatusBarContext.Provider>
     </StripeProvider>
   );
 };
@@ -367,7 +371,6 @@ const App = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Constants.white,
   },
 });
 

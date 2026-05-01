@@ -3,6 +3,7 @@ import {Platform, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {CartIcon,CategoriesIcon,Home2Icon,  Profile2Icon, ShopIcon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 import Home from '../screen/shopping/user/Home';
 import ShoppingCategories from '../screen/shopping/user/Categories';
 import Cart from '../screen/shopping/user/Cart';
@@ -17,6 +18,7 @@ import ShoppingShops from '../screen/shopping/user/ShoppingShops';
 const Tab = createBottomTabNavigator();
 
 export const  Shoppingtab=()=>{
+  useModuleStatusBar({bg: '#ffffff', barStyle: 'dark-content'});
   const [shoppingcartdetail, setshoppingcartdetail] = useContext(ShoppingCartContext);
  const { t } = useTranslation();
   const TabArr = [

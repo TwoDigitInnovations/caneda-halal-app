@@ -3,6 +3,7 @@ import {Animated, Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {OrderIcon,  Profile2Icon,  WorkIcon } from '../../Theme';
 import Constants, { FONTS } from '../Assets/Helpers/constant';
+import useModuleStatusBar from '../Assets/Helpers/useModuleStatusBar';
 import AllOrder from '../screen/deliveryrider/AllOrder';
 import MyOrder from '../screen/deliveryrider/MyOrder';
 import Account from '../screen/deliveryrider/Account';
@@ -13,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 const Tab = createBottomTabNavigator();
 
 export const  Ridertab=()=>{
+  useModuleStatusBar({bg: '#ffffff', barStyle: 'dark-content'});
  const { t } = useTranslation();
   const TabArr = [
     {
