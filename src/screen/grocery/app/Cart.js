@@ -24,6 +24,7 @@ import {
   Location2Icon,
   MinusIcon,
   PlusIcon,
+  StarIcon,
   WalkIcon,
 } from '../../../../Theme';
 import {
@@ -124,7 +125,8 @@ const Cart = () => {
     const sellerId = grocerycartdetail?.[0]?.seller_id;
     if (!sellerId) return;
     const excludeIds = grocerycartdetail.map(i => i.productid).filter(Boolean).join(',');
-    GetApi(`getTopGroceryBySeller/${sellerId}?excludeIds=${excludeIds}&limit=10`).then(
+    const uid = user?._id || '';
+    GetApi(`getTopGroceryBySeller/${sellerId}?excludeIds=${excludeIds}&limit=10&userId=${uid}`).then(
       res => { if (res.status) setTopGroceries(res.data); },
       err => console.log('topGroceries err', err),
     );
@@ -455,6 +457,15 @@ const Cart = () => {
                           style={styles.mealCardImage}
                         />
                         <Text style={styles.mealCardName} numberOfLines={2}>{product?.name}</Text>
+                        {product?.averageRating ? (
+                          <View style={styles.mealRatingRow}>
+                            <StarIcon height={10} width={10} color="#F5A623" />
+                            <Text style={styles.mealRatingTxt}> {Number(product.averageRating).toFixed(1)}</Text>
+                            {product?.totalReviews > 0 && (
+                              <Text style={styles.mealReviewTxt}> ({product.totalReviews})</Text>
+                            )}
+                          </View>
+                        ) : null}
                         <View style={styles.mealCardBottom}>
                           <Text style={styles.mealCardPrice}>
                             {Currency}{product?.price_slot?.[0]?.our_price}
@@ -791,10 +802,12 @@ const Cart = () => {
 
           </ScrollView>
         ) : (
-          <View style={{paddingHorizontal: 20}}>
+          <View style={{paddingHorizontal: 20,alignItems: 'center',
+                        justifyContent: 'center',
+                        height: Dimensions.get('window').height - 100,}}>
             <Image
               source={require('../../../Assets/Images/empty.png')}
-              style={{alignSelf: 'center', marginVertical: 70}}
+              style={{alignSelf: 'center', marginVertical: 20,height:100,width:100}}
             />
             <Text style={styles.empttxt}>{t("Your Cart is empty")}</Text>
             <Text style={styles.empttxt2}>{t("Seems like you haven't added any groceries yet")}</Text>
@@ -1156,6 +1169,22 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     lineHeight: 16,
   },
+  mealRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginBottom: 4,
+  },
+  mealRatingTxt: {
+    fontSize: 10,
+    color: Constants.black,
+    fontFamily: FONTS.SemiBold,
+  },
+  mealReviewTxt: {
+    fontSize: 10,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
+  },
   mealCardBottom: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1293,7 +1322,7 @@ const styles = StyleSheet.create({
 
   /* ── Action button ── */
   btncov: {
-    height: 55,
+    height: 50,
     backgroundColor: Constants.normal_green,
     borderRadius: 25,
     justifyContent: 'center',
@@ -1302,6 +1331,7 @@ const styles = StyleSheet.create({
     marginBottom: 120,
     flexDirection: 'row',
     gap: 10,
+    paddingHorizontal:20
   },
   btncov2: {
     height: 55,

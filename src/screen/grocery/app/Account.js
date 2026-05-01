@@ -20,6 +20,7 @@ import {
   CrossIcon,
   DeleteIcon,
   DriverIcon,
+  FavborIcon,
   InfoIcon,
   LanguageIcon,
   LogoutIcon,
@@ -32,6 +33,7 @@ import {
   SellerIcon,
   SupportIcon,
   TermIcon,
+  UnfavIcon,
 } from '../../../../Theme';
 import { useIsFocused } from '@react-navigation/native';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
@@ -301,6 +303,23 @@ const [selectLanguage, setSelectLanguage] = useState('English');
                 <OrderIcon height={20} width={20} color={Constants.normal_green}/>
               </View>
               <Text style={styles.protxt}>{t('My Orders')}</Text>
+            </View>
+            <RightArrow
+              color={Constants.normal_green}
+              height={15}
+              width={15}
+              style={styles.aliself}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.box]}
+            onPress={() => navigate('FavoriteGroceries')}>
+            <View style={styles.btmboxfirpart}>
+              <View style={styles.iconcov}>
+                <FavborIcon height={20} width={20} color={Constants.normal_green}/>
+              </View>
+              <Text style={styles.protxt}>{t('Favourite Groceries')}</Text>
             </View>
             <RightArrow
               color={Constants.normal_green}

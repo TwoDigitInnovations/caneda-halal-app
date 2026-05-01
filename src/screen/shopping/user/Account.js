@@ -20,6 +20,7 @@ import {
   CrossIcon,
   DeleteIcon,
   DriverIcon,
+  FavborIcon,
   InfoIcon,
   LanguageIcon,
   LogoutIcon,
@@ -31,6 +32,7 @@ import {
   SellerIcon,
   SupportIcon,
   TermIcon,
+  UnfavIcon,
 } from '../../../../Theme';
 import { useIsFocused } from '@react-navigation/native';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
@@ -274,6 +276,17 @@ const [selectLanguage, setSelectLanguage] = useState('English');
             marginBottom: 70,
           }}>
           <Text style={styles.partheadtxt}>{t("Profile")}</Text>
+          <TouchableOpacity
+            style={[styles.box]}
+            onPress={() => navigate('FavoriteShoppings')}>
+            <View style={styles.btmboxfirpart}>
+              <View style={styles.iconcov}>
+                <FavborIcon height={20} width={20} color={Constants.black} />
+              </View>
+              <Text style={styles.protxt}>{t('Favourite Shoppings')}</Text>
+            </View>
+            <RightArrow color={Constants.black} height={15} width={15} style={styles.aliself} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.box]}
             onPress={() => navigate('Shoppingprofile')}>

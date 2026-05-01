@@ -30,6 +30,7 @@ import {
   GroceryUserContext,
   LoadContext,
   ToastContext,
+  UserContext,
 } from '../../../../App';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SwiperFlatList from 'react-native-swiper-flatlist';
@@ -206,6 +207,7 @@ const Home = () => {
     useContext(GroceryCartContext);
   const [toast, setToast] = useContext(ToastContext);
   const [loading, setLoading] = useContext(LoadContext);
+  const [user] = useContext(UserContext);
   const [imgLoading, setImgLoading] = useState(true);
   const [carosalimg, setcarosalimg] = useState([]);
   const [storelist, setstorelist] = useState([]);
@@ -292,6 +294,30 @@ const Home = () => {
       err => {
         setLoading(false);
         console.log(err);
+      },
+    );
+  };
+
+  const toggleFav = (groceryId) => {
+    setCategoryWithProducts(prev =>
+      prev.map(cat => ({
+        ...cat,
+        groceries: cat.groceries?.map(g =>
+          g._id === groceryId ? {...g, isFavorite: !g.isFavorite} : g,
+        ) || [],
+      })),
+    );
+    Post('grocerytogglefavorite', {groceryid: groceryId}).then(
+      () => {},
+      () => {
+        setCategoryWithProducts(prev =>
+          prev.map(cat => ({
+            ...cat,
+            groceries: cat.groceries?.map(g =>
+              g._id === groceryId ? {...g, isFavorite: !g.isFavorite} : g,
+            ) || [],
+          })),
+        );
       },
     );
   };
@@ -385,13 +411,6 @@ const Home = () => {
           );
     setgrocerycartdetail(updatedCart);
     await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
-  };
-
-  const getAvgRating = reviews => {
-    if (!reviews || reviews.length === 0) return null;
-    const avg =
-      reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length;
-    return avg.toFixed(1);
   };
 
   const width = Dimensions.get('window').width;
@@ -513,8 +532,8 @@ const Home = () => {
                 contentContainerStyle={{paddingHorizontal: 12}}
                 columnWrapperStyle={{gap: 8, marginBottom: 8}}
                 renderItem={({item}) => {
-                  const avgRating = getAvgRating(item.reviews);
-                  const reviewCount = item.reviews?.length || 0;
+                  const avgRating = item.averageRating ? Number(item.averageRating).toFixed(1) : null;
+                  const reviewCount = item.totalReviews || 0;
                   return (
                     <TouchableOpacity
                       style={styles.productCard}
@@ -529,11 +548,13 @@ const Home = () => {
                           resizeMode="contain"
                         />
                         {/* Heart / wishlist icon */}
-                        <TouchableOpacity style={styles.heartBtn}>
+                        <TouchableOpacity
+                          style={styles.heartBtn}
+                          onPress={e => { e.stopPropagation?.(); toggleFav(item._id); }}>
                           <UnfavIcon
                             height={16}
                             width={16}
-                            color={Constants.white}
+                            color={item.isFavorite ? '#F14141' : null}
                           />
                         </TouchableOpacity>
                         {(() => {
@@ -586,26 +607,23 @@ const Home = () => {
                         </Text>
 
                         {/* Rating */}
-                        <View style={styles.ratingRow}>
-                          <StarIcon height={10} width={10} color="#F5A623" />
-                          <Text style={styles.ratingTxt}>
-                            {' '}
-                            {avgRating ?? '4.9'}
-                          </Text>
-                          <Text style={styles.reviewCountTxt}>
-                            {' '}({reviewCount || 5840})
-                          </Text>
-                        </View>
+                        {avgRating && (
+                          <View style={styles.ratingRow}>
+                            <StarIcon height={10} width={10} color="#F5A623" />
+                            <Text style={styles.ratingTxt}> {avgRating}</Text>
+                            <Text style={styles.reviewCountTxt}> ({reviewCount})</Text>
+                          </View>
+                        )}
 
                         {/* Delivery time */}
-                        <View style={styles.deliveryRow}>
+                        {/* <View style={styles.deliveryRow}>
                           <ClockIcon
                             height={10}
                             width={10}
                             color={Constants.customgrey}
                           />
                           <Text style={styles.deliveryTxt}>{' '}17 mins</Text>
-                        </View>
+                        </View> */}
                       </View>
                     </TouchableOpacity>
                   );

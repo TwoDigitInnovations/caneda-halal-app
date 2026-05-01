@@ -5,101 +5,67 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
-import {BackIcon, SearchIcon, UnfavIcon} from '../../../../Theme';
+import {UnfavIcon} from '../../../../Theme';
 import {LoadContext, UserContext} from '../../../../App';
 import {GetApi, Post} from '../../../Assets/Helpers/Service';
-import {goBack, navigate} from '../../../../navigationRef';
+import {navigate} from '../../../../navigationRef';
+import DriverHeader from '../../../Assets/Component/DriverHeader';
 import {useTranslation} from 'react-i18next';
+import {useIsFocused} from '@react-navigation/native';
 import {StarRatingDisplay} from 'react-native-star-rating-widget';
 
 const {width: W} = Dimensions.get('window');
 const cardWidth = (W - 48) / 2;
 
-const ShoppingSearchpage = () => {
+const FavoriteShoppings = () => {
   const {t} = useTranslation();
-  const inputRef = useRef(null);
+  const isFocused = useIsFocused();
   const [loading, setLoading] = useContext(LoadContext);
   const [user] = useContext(UserContext);
   const [productlist, setproductlist] = useState([]);
-  const [searchkey, setsearchkey] = useState('');
-  const [page, setPage] = useState(1);
-  const [curentData, setCurrentData] = useState([]);
 
   useEffect(() => {
-    setTimeout(() => {
-      if (inputRef.current) inputRef.current.focus();
-    }, 200);
-  }, []);
+    if (isFocused) getFavorites();
+  }, [isFocused]);
+
+  const getFavorites = () => {
+    setLoading(true);
+    GetApi('shoppinggetfavorite').then(
+      res => {
+        setLoading(false);
+        if (res.status) setproductlist(res.data);
+      },
+      err => { setLoading(false); console.log(err); },
+    );
+  };
 
   const toggleFav = id => {
-    setproductlist(prev => prev.map(p => p._id === id ? {...p, isFavorite: !p.isFavorite} : p));
+    setproductlist(prev => prev.filter(p => p._id !== id));
     Post('shoppingtogglefavorite', {shoppingid: id}).then(
       () => {},
-      () => {
-        setproductlist(prev => prev.map(p => p._id === id ? {...p, isFavorite: !p.isFavorite} : p));
-      },
+      () => { getFavorites(); },
     );
-  };
-
-  const getsearchproducts = (p, text) => {
-    setPage(p);
-    const uid = user?._id || '';
-    GetApi(`shoppingSearch?page=${p}&key=${text}&userId=${uid}`).then(
-      res => {
-        setCurrentData(res.data);
-        setproductlist(p === 1 ? res.data : [...productlist, ...res.data]);
-      },
-      err => { console.log(err); },
-    );
-  };
-
-  const fetchNextPage = () => {
-    if (curentData.length === 20) {
-      getsearchproducts(page + 1, searchkey);
-    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.searchcov}>
-        <BackIcon
-          color={Constants.white}
-          width={25}
-          height={25}
-          style={{alignSelf: 'center'}}
-          onPress={() => goBack()}
-        />
-        <View style={styles.inpcov}>
-          <SearchIcon height={20} width={20} color={Constants.black} />
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            placeholder={t('What are u looking for ?')}
-            placeholderTextColor={Constants.customgrey2}
-            onChangeText={name => {
-              getsearchproducts(1, name);
-              setsearchkey(name);
-            }}
-          />
-        </View>
-      </View>
-
+      <DriverHeader item={t('Favourite Shoppings')} showback={true} />
       <FlatList
         data={productlist}
         numColumns={2}
+        style={{flex: 1}}
         contentContainerStyle={{paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20}}
         columnWrapperStyle={{gap: 16, marginBottom: 16}}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={() => (
           <View style={{alignItems: 'center', justifyContent: 'center', height: Dimensions.get('window').height - 200}}>
             <Text style={{color: Constants.black, fontSize: 20, fontFamily: FONTS.Medium}}>
-              {t('No Products')}
+              {t('No Favourites')}
             </Text>
           </View>
         )}
@@ -115,7 +81,7 @@ const ShoppingSearchpage = () => {
               <TouchableOpacity
                 style={styles.heartBtn}
                 onPress={e => { e.stopPropagation?.(); toggleFav(item._id); }}>
-                <UnfavIcon height={16} width={16} color={item.isFavorite ? '#E53935' : null} />
+                <UnfavIcon height={16} width={16} color="#E53935" />
               </TouchableOpacity>
               {discountPct && (
                 <View style={styles.curatedBadge}>
@@ -141,7 +107,7 @@ const ShoppingSearchpage = () => {
                       rating={Number(item.averageRating)}
                       starStyle={{marginHorizontal: 0}}
                       starSize={12}
-                      color="#6D5A00"
+                      color={Constants.normal_green}
                     />
                     {item?.totalReviews > 0 && <Text style={styles.reviewTxt}>({item.totalReviews})</Text>}
                   </View>
@@ -150,44 +116,17 @@ const ShoppingSearchpage = () => {
             </TouchableOpacity>
           );
         }}
-        onEndReached={() => { if (productlist && productlist.length > 0) fetchNextPage(); }}
-        onEndReachedThreshold={0.05}
       />
     </SafeAreaView>
   );
 };
 
-export default ShoppingSearchpage;
+export default FavoriteShoppings;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F7F7F7',
-  },
-  inpcov: {
-    borderWidth: 1,
-    borderColor: Constants.customgrey,
-    backgroundColor: Constants.white,
-    borderRadius: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    marginHorizontal: 15,
-    flex: 1,
-  },
-  input: {
-    flex: 1,
-    color: Constants.black,
-    fontFamily: FONTS.Regular,
-    fontSize: 16,
-    marginLeft: 10,
-    textAlign: 'left',
-    minHeight: 45,
-  },
-  searchcov: {
-    backgroundColor: Constants.normal_green,
-    padding: 20,
-    flexDirection: 'row',
   },
   curatedCard: {
     backgroundColor: '#fff',

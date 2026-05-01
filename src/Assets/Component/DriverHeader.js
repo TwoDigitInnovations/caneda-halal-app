@@ -21,19 +21,20 @@ const DriverHeader = props => {
  
   return (
     <View style={styles.toppart}>
-      <StatusBar barStyle="dark-content"/>
       <View
         style={{
           flexDirection: 'row',
-          gap: 10,
+          // gap: 10,
           height: '100%',
+          width: '100%',
           alignItems: 'center',
+          justifyContent:'space-between'
         }}>
         {props.showback ? (
           <TouchableOpacity
             onPress={() => goBack()}
-            style={{width: 20, height: 20, marginRight: 10}}>
-            <BackIcon color={Constants.white} />
+            style={styles.backcov}>
+            <BackIcon color={Constants.black} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -60,6 +61,7 @@ const DriverHeader = props => {
           </TouchableOpacity>
         )}
         <Text style={styles.backtxt}>{props?.item}</Text>
+        <View style={{width:40}} />  
       </View>
     </View>
   );
@@ -69,15 +71,15 @@ export default DriverHeader;
 
 const styles = StyleSheet.create({
   backtxt: {
-    color: Constants.white,
-    fontSize: 18,
+    color: Constants.black,
+    fontSize: 16,
     fontFamily: FONTS.SemiBold,
   },
   toppart: {
     flexDirection: 'row',
     paddingVertical: 15,
     paddingHorizontal: 20,
-    backgroundColor: Constants.dark_green,
+    // backgroundColor: Constants.dark_green,
   },
   hi: {
     marginRight: 10,
@@ -90,4 +92,15 @@ const styles = StyleSheet.create({
     // fontWeight:'bold'
     // fontFamily:FONTS.Bold
   },
+  backcov:{
+    // width: 20, 
+    // height: 20, 
+    marginRight: 10,
+    borderWidth:1,
+    borderColor:Constants.black,
+    borderRadius:50,
+    justifyContent:'center',
+    alignItems:'center',
+    padding: 5
+  }
 });

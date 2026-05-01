@@ -2,7 +2,6 @@ import {
   Dimensions,
   FlatList,
   Image,
-  ImageBackground,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -11,262 +10,152 @@ import {
 } from 'react-native';
 import React, {useContext, useEffect, useState} from 'react';
 import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
-import {PlusIcon} from '../../../../Theme';
-import { ShoppingCartContext, LoadContext, ToastContext} from '../../../../App';
+import {UnfavIcon} from '../../../../Theme';
+import { LoadContext, UserContext} from '../../../../App';
 import {GetApi, Post} from '../../../Assets/Helpers/Service';
 import {navigate} from '../../../../navigationRef';
-import { useIsFocused } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import DriverHeader from '../../../Assets/Component/DriverHeader';
 import { useTranslation } from 'react-i18next';
 import TranslateHandled from '../../../Assets/Component/TranslateHandled';
+import {StarRatingDisplay} from 'react-native-star-rating-widget';
+
+const {width: W} = Dimensions.get('window');
+const cardWidth = (W - 48) / 2;
 
 const ShoppingProducts = props => {
   const { t } = useTranslation();
-  const [shoppingcartdetail, setshoppingcartdetail] = useContext(ShoppingCartContext);
-  const [toast, setToast] = useContext(ToastContext);
   const [loading, setLoading] = useContext(LoadContext);
+  const [user] = useContext(UserContext);
   const [productlist, setproductlist] = useState([]);
-      const [page, setPage] = useState(1);
-      const [curentData, setCurrentData] = useState([]);
-  const [user, setuser] = useState();
-  const IsFocused = useIsFocused();
+  const [page, setPage] = useState(1);
+  const [curentData, setCurrentData] = useState([]);
   const data = props?.route?.params.id;
   const catname = props?.route?.params.name;
   const topsell = props?.route?.params.type;
   const store_id = props?.route?.params.store_id;
 
   useEffect(() => {
-    {
-      data && getproduct(1);
-    }
-    {
-      topsell==='topselling' && getTopSoldProduct(1);
-    }
+    data && getproduct(1);
+    topsell === 'topselling' && getTopSoldProduct(1);
   }, []);
 
-  
-  useEffect(() => {
-    if (IsFocused) {
-      setInitialRoute()
-    }
-  }, [IsFocused]);
-
-  const setInitialRoute = async () => {
-    const user = await AsyncStorage.getItem('userDetail');
-    setuser(JSON.parse(user));
-  }
-
-  const getproduct = (p) => {
-    setPage(p)
+  const getproduct = p => {
+    setPage(p);
     setLoading(true);
-     let url=`getShoppingbycategory/${data}?page=${p}`
+    const uid = user?._id || '';
+    let url = `getShoppingbycategory/${data}?page=${p}&userId=${uid}`;
     if (store_id) {
-      url=`getShoppingbycategory/${data}?page=${p}&store_id=${store_id}`
+      url = `getShoppingbycategory/${data}?page=${p}&store_id=${store_id}&userId=${uid}`;
     }
     GetApi(url).then(
-      async res => {
+      res => {
         setLoading(false);
-        console.log(res);
         if (res.status) {
           setCurrentData(res.data);
-          if (p === 1) {
-            setproductlist(res.data);
-          } else {
-            setproductlist([...productlist, ...res.data]);
-          }
-          
+          setproductlist(p === 1 ? res.data : [...productlist, ...res.data]);
         }
       },
-      err => {
+      err => { setLoading(false); console.log(err); },
+    );
+  };
+
+  const getTopSoldProduct = p => {
+    setPage(p);
+    setLoading(true);
+    const uid = user?._id || '';
+    GetApi(`getTopSoldShopping?page=${p}&userId=${uid}`).then(
+      res => {
         setLoading(false);
-        console.log(err);
+        if (res.status) {
+          setCurrentData(res.data);
+          setproductlist(p === 1 ? res.data : [...productlist, ...res.data]);
+        }
+      },
+      err => { setLoading(false); console.log(err); },
+    );
+  };
+
+  const toggleFav = id => {
+    setproductlist(prev => prev.map(p => p._id === id ? {...p, isFavorite: !p.isFavorite} : p));
+    Post('shoppingtogglefavorite', {shoppingid: id}).then(
+      () => {},
+      () => {
+        setproductlist(prev => prev.map(p => p._id === id ? {...p, isFavorite: !p.isFavorite} : p));
       },
     );
   };
 
-    const getTopSoldProduct = (p) => {
-      setPage(p)
-      setLoading(true);
-      GetApi(`getTopSoldShopping?page=${p}`,).then(
-        async res => {
-          setLoading(false);
-          console.log(res);
-          if (res.status) {
-            setCurrentData(res.data);
-            if (p === 1) {
-              setproductlist(res.data);
-            } else {
-              setproductlist([...productlist, ...res.data]);
-            }
-          }
-        },
-        err => {
-          setLoading(false);
-          console.log(err);
-        },
-      );
-    };
-
-  const cartdata = async (productdata) => {
-    const existingCart = Array.isArray(shoppingcartdetail)
-    ? shoppingcartdetail
-    : [];
-
-  // Check if the exact product with selected price_slot exists
-  const existingProduct = existingCart.find(
-    (f) =>
-      f.productid === productdata._id &&
-      f.price_slot?.value ===  productdata?.price_slot[0]?.value
-  );
-
-  if (existingCart.length > 0) {
-    const currentSellerId = existingCart[0].seller_id;
-    
-    // If trying to add product from a different seller
-    if (productdata.sellerid !== currentSellerId) {
-      console.log("Different seller detected, clearing cart...");
-
-      // 🧹 Clear old cart and add new item
-      const newProduct = {
-        productid: productdata._id,
-        productname: productdata.name,
-        price: productdata?.price_slot[0]?.other_price,
-        offer: productdata?.price_slot[0]?.our_price,
-        image: productdata.image[0],
-        price_slot: productdata?.price_slot[0],
-        qty: 1,
-        seller_id: productdata.sellerid,
-        seller_profile: productdata.seller_profile?._id,
-        seller_location: productdata.seller_profile?.location,
-      };
-
-      const updatedCart = [newProduct];
-      setshoppingcartdetail(updatedCart);
-      await AsyncStorage.setItem('shoppingcartdata', JSON.stringify(updatedCart));
-      console.log("New product added after clearing cart:", newProduct);
-      setToast("Successfully added to cart.")
-      return;
-    } else{
-       console.log(
-        "Product already in cart with this price slot:",
-        existingProduct
-      );
-      let stringdata = shoppingcartdetail.map(_i => {
-        if (_i?.productid == productdata._id) {
-          console.log('enter')
-          return { ..._i, qty: _i?.qty + 1 };
-        } else {
-          return _i;
-        }
-      });
-      console.log(stringdata)
-      setshoppingcartdetail(stringdata);
-      await AsyncStorage.setItem('shoppingcartdata', JSON.stringify(stringdata))
-    }
-  }
-
-  if (!existingProduct) {
-    const newProduct = {
-         productid: productdata._id,
-      productname: productdata.name,
-      price: productdata?.price_slot[0]?.other_price,
-      offer: productdata?.price_slot[0]?.our_price,
-      image:productdata.image[0],
-      price_slot:productdata?.price_slot[0],
-      qty: 1,
-      seller_id:productdata.sellerid,
-      seller_profile: productdata.seller_profile?._id,
-      seller_location: productdata.seller_profile?.location,
-    };
-
-    const updatedCart = [...existingCart, newProduct];
-    setshoppingcartdetail(updatedCart);
-    await AsyncStorage.setItem('shoppingcartdata', JSON.stringify(updatedCart))
-    console.log("Product added to cart:", newProduct);
-  } 
-  setToast("Successfully added to cart.")
-    // navigate('Cart');
-  };
   const fetchNextPage = () => {
-    console.log('enter',curentData.length)
     if (curentData.length === 20) {
-      console.log('enter1',topsell)
-      if (topsell==='topselling') {
-        console.log('enter2')
-        getTopSoldProduct(page + 1);
-      } else {
-        getproduct(page + 1);
-      }
+      topsell === 'topselling' ? getTopSoldProduct(page + 1) : getproduct(page + 1);
     }
   };
+
   return (
     <SafeAreaView style={styles.container}>
-      <DriverHeader item={t("Products")} showback={true} />
+      <DriverHeader item={t('Products')} showback={true} />
       <Text style={styles.headtxt}><TranslateHandled text={catname} /></Text>
       <FlatList
         data={productlist}
         numColumns={2}
-        style={{paddingRight:20,marginLeft:5,}}
+        contentContainerStyle={{paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20}}
+        columnWrapperStyle={{gap: 16, marginBottom: 16}}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={() => (
-          <View
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: Dimensions.get('window').height - 200,
-            }}>
-            <Text
-              style={{
-                color: Constants.black,
-                fontSize: 20,
-                fontFamily: FONTS.Medium,
-              }}>
-              {t("No Products")}
+          <View style={{alignItems: 'center', justifyContent: 'center', height: Dimensions.get('window').height - 200}}>
+            <Text style={{color: Constants.black, fontSize: 20, fontFamily: FONTS.Medium}}>
+              {t('No Products')}
             </Text>
           </View>
         )}
-        // style={{gap:'2%'}}
-        renderItem={({item}, i) => (
-          <View style={styles.shadowWrapper} key={i}>
-          <TouchableOpacity style={styles.box} onPress={()=>navigate('ShoppingPreview',item._id)}>
-          {/* <ImageBackground source={require('../../Assets/Images/start.png')} style={styles.star}></ImageBackground> */}
-          <Image
-            // source={require('../../Assets/Images/salt.png')}
-            source={{uri: item?.variants[0].image[0]}}
-            style={styles.cardimg}
-            resizeMode='stretch'
-          />
-         {item?.variants && item?.variants?.length > 0 && <ImageBackground
-            source={require('../../../Assets/Images/star.png')}
-            style={styles.cardimg2}
-          >
-            <Text style={styles.offtxt}>{(((Number(item?.variants[0]?.selected[0]?.other_price) - Number(item?.variants[0]?.selected[0]?.our_price)) / Number(item?.variants[0]?.selected[0]?.other_price)) * 100).toFixed(0)}%</Text>
-            <Text style={styles.offtxt}>{t("off")}</Text>
-          </ImageBackground>}
-          <Text style={styles.proname}>{item.name}</Text>
-         {/* {item?.variants?.[0]?.selected && (
-                             <Text style={styles.weight}>
-                               {item?.variants?.[0]?.selected.map((it)=>{return(`${it?.value} ,`)})}
-                             </Text>
-                           )} */}
-          {/* <View style={{flexDirection: 'row', flex: 1, marginHorizontal: 15,marginBottom:10,}}> */}
-            <View style={{flex: 1,flexDirection:'row',gap:10,alignItems:'center',marginHorizontal: 15,}}>
-              {item?.variants && item?.variants?.length > 0 &&<Text style={styles.disctxt}>{Currency}{item?.variants[0]?.selected[0]?.our_price}</Text>}
-              {item?.variants && item?.variants?.length > 0 &&<Text style={styles.maintxt}>{Currency}{item?.variants[0]?.selected[0]?.other_price}</Text>}
-            </View>
-            {/* <TouchableOpacity style={styles.pluscov} onPress={()=>cartdata(item)}>
-              <PlusIcon height={25} width={25} />
-            </TouchableOpacity> */}
-          {/* </View> */}
-        </TouchableOpacity>
-        </View>
-        )}
-        onEndReached={() => {
-          if (productlist && productlist.length > 0) {
-            fetchNextPage();
-          }
+        renderItem={({item}) => {
+          const discountPct = item?.variants?.[0]?.selected?.[0]
+            ? (((Number(item.variants[0].selected[0].other_price) - Number(item.variants[0].selected[0].our_price)) / Number(item.variants[0].selected[0].other_price)) * 100).toFixed(0)
+            : null;
+          return (
+            <TouchableOpacity
+              style={[styles.curatedCard, {width: cardWidth}]}
+              activeOpacity={0.85}
+              onPress={() => navigate('ShoppingPreview', item._id)}>
+              <TouchableOpacity
+                style={styles.heartBtn}
+                onPress={e => { e.stopPropagation?.(); toggleFav(item._id); }}>
+                <UnfavIcon height={16} width={16} color={item.isFavorite ? '#E53935' : null} />
+              </TouchableOpacity>
+              {discountPct && (
+                <View style={styles.curatedBadge}>
+                  <Text style={styles.curatedBadgeTxt}>-{discountPct}%</Text>
+                </View>
+              )}
+              <Image
+                source={{uri: item?.variants?.[0]?.image?.[0]}}
+                style={styles.curatedImg}
+                resizeMode="contain"
+              />
+              <View style={styles.curatedInfo}>
+                <Text numberOfLines={2} style={styles.curatedName}>{item.name}</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.curatedPrice}>{Currency}{item?.variants?.[0]?.selected?.[0]?.our_price}</Text>
+                  {item?.variants?.[0]?.selected?.[0]?.other_price && (
+                    <Text style={styles.curatedOldPrice}>{Currency}{item?.variants?.[0]?.selected?.[0]?.other_price}</Text>
+                  )}
+                </View>
+                {item?.averageRating && item?.averageRating > 0 ? (
+                  <View style={styles.ratingRow}>
+                    <StarRatingDisplay
+                      rating={Number(item.averageRating)}
+                      starStyle={{marginHorizontal: 0}}
+                      starSize={12}
+                      color="#6D5A00"
+                    />
+                    {item?.totalReviews > 0 && <Text style={styles.reviewTxt}>({item.totalReviews})</Text>}
+                  </View>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          );
         }}
+        onEndReached={() => { if (productlist && productlist.length > 0) fetchNextPage(); }}
         onEndReachedThreshold={0.05}
       />
     </SafeAreaView>
@@ -278,116 +167,87 @@ export default ShoppingProducts;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Constants.white,
-    // paddingBottom: 20,
+    backgroundColor: '#F7F7F7',
   },
- 
   headtxt: {
     color: Constants.black,
-    // fontWeight: '700',
-    fontSize: 18,
+    fontSize: 16,
     textAlign: 'center',
-    marginVertical: 10,
+    // marginVertical: 10,
     fontFamily: FONTS.SemiBold,
-    // marginVertical:10
-  },
-   cardimg: {
-    height: 175,
-    width: '100%',
-    borderTopLeftRadius:20,
-    borderTopRightRadius:20,
-    resizeMode: 'contain',
-    alignSelf: 'center',
-    borderRadius:5
     // backgroundColor:'red'
   },
-  shadowWrapper: {
-  boxShadow: '0px 0px 6px 0.5px grey',
-  borderRadius: 20,
-  marginVertical: 20,
-  marginHorizontal: 10,
-  backgroundColor: Constants.light_green, // necessary for iOS shadows
-  width: '47%',
-},
-box: {
-  width:'100%',
-  // paddingTop: 10,
-  paddingBottom: 5,
-  borderRadius: 20,
-  overflow: 'visible', // still needed if your child extends outside
-  backgroundColor: 'transparent', // make sure this doesn't override shadow
-},
-cardimg2: {
-  height: 50,
-  width: 50,
-  position: 'absolute',
-  right: -14,
-  top: -20,
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 999, // very high to force render on top
-},
-
-  seealltxt: {
-    fontSize: 16,
-    color: Constants.normal_green,
-    fontFamily: FONTS.SemiBold,
-    marginHorizontal: 10,
+  curatedCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    paddingBottom: 10,
+    boxShadow: '0px 1px 2px 0px #00000024',
   },
-  categorytxt: {
-    fontSize: 16,
+  heartBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 4,
+    zIndex: 10,
+    borderRadius: 20,
+    padding: 4,
+  },
+  curatedBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    zIndex: 9,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    backgroundColor: '#B32000',
+  },
+  curatedBadgeTxt: {
+    fontSize: 9,
+    fontFamily: FONTS.SemiBold,
+    color: Constants.white,
+  },
+  curatedImg: {
+    height: 150,
+    width: '100%',
+    backgroundColor: '#F7F7F7',
+  },
+  curatedInfo: {
+    paddingHorizontal: 10,
+    marginTop: 6,
+  },
+  curatedName: {
+    fontSize: 13,
     color: Constants.black,
-    fontFamily: FONTS.SemiBold,
-  },
-  disctxt: {
-    fontSize: 16,
-    color: Constants.linearcolor,
-    fontFamily: FONTS.SemiBold,
-  },
-  maintxt: {
-    fontSize: 16,
-    color: Constants.customgrey,
     fontFamily: FONTS.Medium,
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  curatedPrice: {
+    fontSize: 14,
+    color: '#B32000',
+    fontFamily: FONTS.SemiBold,
+  },
+  curatedOldPrice: {
+    fontSize: 11,
+    color: Constants.customgrey2,
+    fontFamily: FONTS.Regular,
     textDecorationLine: 'line-through',
   },
-  covline: {
+  ratingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginVertical: 10,
-    // backgroundColor:Constants.red
-  },
-  proname: {
-    fontSize: 16,
-    color: Constants.black,
-    fontFamily: FONTS.Medium,
-    marginLeft: 20,
-    marginTop: 5,
-  },
-  weight: {
-    fontSize: 12,
-    color: Constants.customgrey,
-    fontFamily: FONTS.Regular,
-    marginLeft: 20,
-    // marginTop: 10,
-  },
-  offtxt: {
-    fontSize: 10,
-    color: Constants.white,
-    fontFamily: FONTS.SemiBold,
-    lineHeight:15
-    // marginLeft: 7,
-  },
-  pluscov: {
-    // backgroundColor:Constants.blue,
-    width: 40,
-    height: 40,
-    alignSelf: 'flex-end',
-    justifyContent: 'center',
     alignItems: 'center',
-    boxShadow: '0px 0px 6px 0px grey',
-    borderRadius: 10,
-    // marginRight:20
+    gap: 4,
   },
- 
+  reviewTxt: {
+    color: Constants.customgrey2,
+    fontSize: 11,
+    fontFamily: FONTS.Regular,
+  },
 });

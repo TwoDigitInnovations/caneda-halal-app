@@ -39,6 +39,7 @@ const ShoppingOrders = () => {
   const [review, setreview] = useState('');
   const [rating, setrating] = useState('');
   const [selfoodid, setselfoodid] = useState('');
+  const [selproductimage, setselproductimage] = useState('');
   const [alreadyrated, setalreadyrated] = useState(false);
   const IsFocused = useIsFocused();
   const dumydata = [1, 2, 3];
@@ -78,12 +79,13 @@ const ShoppingOrders = () => {
   };
 
   const addreview = () => {
-    let url = `addreview`;
+    let url = `shoppingaddreview`;
     const data = {
-      foodid: selfoodid,
+      shoppingid: selfoodid,
       rating: rating,
       comment: review,
       userProfile: shoppinguserProfile._id,
+      shoppingImage: selproductimage,
     };
     console.log('data', data)
     setLoading(true);
@@ -224,14 +226,21 @@ const { DownloadDir, DocumentDir } = RNBlobUtil.fs.dirs;
                   <View style={{ marginLeft: 10, flex: 1 }}>
                     <View style={styles.covline}>
                       <Text style={styles.ordtxt1} numberOfLines={2}>{prod?.shopping_name}</Text>
-                      {/* <Text style={styles.revtxt} onPress={() => {
-                        setModalVisible(true), setselfoodid(prod?.food_id?._id); if (prod?.food_id?.reviews.some(r => r.userId === user._id)) {
-                          setrating(prod?.food_id?.reviews.find(r => r.userId === user._id)?.rating);
-                          setreview(prod?.food_id?.reviews.find(r => r.userId === user._id)?.comment);
-                          setalreadyrated(true)
+                      <Text style={styles.revtxt} onPress={() => {
+                        setModalVisible(true);
+                        setselfoodid(prod?.shopping_id?._id);
+                        setselproductimage(prod?.image ?? '');
+                        if (prod?.shopping_id?.reviews?.some(r => String(r.userId) === String(user._id))) {
+                          const myReview = prod?.shopping_id?.reviews?.find(r => String(r.userId) === String(user._id));
+                          setrating(myReview?.rating);
+                          setreview(myReview?.comment);
+                          setalreadyrated(true);
+                        } else {
+                          setalreadyrated(false);
+                          setrating('');
+                          setreview('');
                         }
-                        else{setalreadyrated(false),setrating(''),setreview('')}
-                      }}>{prod?.food_id?.reviews.some(r => String(r.userId) === String(user._id)) ? 'Show review' : 'Add review'}</Text> */}
+                      }}>{prod?.shopping_id?.reviews?.some(r => String(r.userId) === String(user._id)) ? t('Show Review') : t('Add Review')}</Text>
                     </View>
                     <View style={styles.covline}>
                       <Text style={styles.ordtxt2}>{Currency} {item.total}</Text>

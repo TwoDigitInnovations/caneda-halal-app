@@ -50,8 +50,12 @@ export const  FoodSellerTab=()=>{
   ];
 
   const TabButton = useCallback(
-    ({accessibilityState, onPress, onclick, item,index}) => {
-      const isSelected = accessibilityState?.selected;
+    (props) => {
+      const isSelected = props?.['aria-selected'];
+      const onPress = props?.onPress;
+      const onclick = props?.onclick;
+      const item = props?.item;
+      const index = props?.index;
       return (
         <View style={styles.tabBtnView}>
          

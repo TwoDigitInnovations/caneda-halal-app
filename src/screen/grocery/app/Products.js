@@ -11,10 +11,9 @@ import {
 import React, {useContext, useEffect, useState} from 'react';
 import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
 import {ClockIcon, MinusIcon, PlusIcon, StarIcon, UnfavIcon} from '../../../../Theme';
-import { GroceryCartContext, LoadContext, ToastContext} from '../../../../App';
+import { GroceryCartContext, LoadContext, ToastContext, UserContext } from '../../../../App';
 import {GetApi, Post} from '../../../Assets/Helpers/Service';
 import {navigate} from '../../../../navigationRef';
-import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DriverHeader from '../../../Assets/Component/DriverHeader';
 import { useTranslation } from 'react-i18next';
@@ -25,11 +24,10 @@ const GroceryProducts = props => {
   const [grocerycartdetail, setgrocerycartdetail] = useContext(GroceryCartContext);
   const [toast, setToast] = useContext(ToastContext);
   const [loading, setLoading] = useContext(LoadContext);
+  const [user] = useContext(UserContext);
   const [productlist, setproductlist] = useState([]);
-      const [page, setPage] = useState(1);
-      const [curentData, setCurrentData] = useState([]);
-  const [user, setuser] = useState();
-  const IsFocused = useIsFocused();
+  const [page, setPage] = useState(1);
+  const [curentData, setCurrentData] = useState([]);
   const data = props?.route?.params.id;
   const catname = props?.route?.params.name;
   const topsell = props?.route?.params.type;
@@ -45,23 +43,13 @@ const GroceryProducts = props => {
   }, []);
 
   
-  useEffect(() => {
-    if (IsFocused) {
-      setInitialRoute()
-    }
-  }, [IsFocused]);
-
-  const setInitialRoute = async () => {
-    const user = await AsyncStorage.getItem('userDetail');
-    setuser(JSON.parse(user));
-  }
-
   const getproduct = (p) => {
     setPage(p)
     setLoading(true);
-     let url=`getGrocerybycategory/${data}?page=${p}`
+    const uid = user?._id || '';
+    let url = `getGrocerybycategory/${data}?page=${p}&userId=${uid}`;
     if (store_id) {
-      url=`getGrocerybycategory/${data}?page=${p}&store_id=${store_id}`
+      url = `getGrocerybycategory/${data}?page=${p}&store_id=${store_id}&userId=${uid}`;
     }
     GetApi(url).then(
       async res => {
@@ -87,7 +75,7 @@ const GroceryProducts = props => {
     const getTopSoldProduct = (p) => {
       setPage(p)
       setLoading(true);
-      GetApi(`getTopSoldGrocery?page=${p}`,).then(
+      GetApi(`getTopSoldGrocery?page=${p}&userId=${user?._id || ''}`,).then(
         async res => {
           setLoading(false);
           console.log(res);
@@ -106,6 +94,20 @@ const GroceryProducts = props => {
         },
       );
     };
+
+  const toggleFav = (groceryId) => {
+    setproductlist(prev =>
+      prev.map(p => p._id === groceryId ? {...p, isFavorite: !p.isFavorite} : p),
+    );
+    Post('grocerytogglefavorite', {groceryid: groceryId}).then(
+      () => {},
+      () => {
+        setproductlist(prev =>
+          prev.map(p => p._id === groceryId ? {...p, isFavorite: !p.isFavorite} : p),
+        );
+      },
+    );
+  };
 
   const cartdata = async (productdata) => {
     const existingCart = Array.isArray(grocerycartdetail)
@@ -244,11 +246,8 @@ const GroceryProducts = props => {
           </View>
         )}
         renderItem={({item}) => {
-          const avgRating =
-            item.reviews?.length > 0
-              ? (item.reviews.reduce((s, r) => s + (r.rating || 0), 0) / item.reviews.length).toFixed(1)
-              : null;
-          const reviewCount = item.reviews?.length || 0;
+          const avgRating = item.averageRating ? Number(item.averageRating).toFixed(1) : null;
+          const reviewCount = item.totalReviews || 0;
           const cartItem = grocerycartdetail?.find(
             f => f.productid === item._id && f.price_slot?.value === item.price_slot?.[0]?.value,
           );
@@ -263,8 +262,10 @@ const GroceryProducts = props => {
                   style={styles.productCardImg}
                   resizeMode="contain"
                 />
-                <TouchableOpacity style={styles.heartBtn}>
-                  <UnfavIcon height={16} width={16} color={Constants.white} />
+                <TouchableOpacity
+                  style={styles.heartBtn}
+                  onPress={e => { e.stopPropagation?.(); toggleFav(item._id); }}>
+                  <UnfavIcon height={16} width={16} color={item.isFavorite ? '#F14141' : Constants.white} />
                 </TouchableOpacity>
                 {cartItem?.qty > 0 ? (
                   <View style={styles.stepperBtn}>
@@ -298,15 +299,17 @@ const GroceryProducts = props => {
                   </Text>
                 </View>
                 <Text style={styles.productNameTxt} numberOfLines={2}>{item.name}</Text>
-                <View style={styles.ratingRow}>
-                  <StarIcon height={10} width={10} color="#F5A623" />
-                  <Text style={styles.ratingTxt}> {avgRating ?? '4.9'}</Text>
-                  <Text style={styles.reviewCountTxt}> ({reviewCount || 5840})</Text>
-                </View>
-                <View style={styles.deliveryRow}>
+                {avgRating && (
+                  <View style={styles.ratingRow}>
+                    <StarIcon height={10} width={10} color="#F5A623" />
+                    <Text style={styles.ratingTxt}> {avgRating}</Text>
+                    <Text style={styles.reviewCountTxt}> ({reviewCount})</Text>
+                  </View>
+                )}
+                {/* <View style={styles.deliveryRow}>
                   <ClockIcon height={10} width={10} color={Constants.customgrey} />
                   <Text style={styles.deliveryTxt}> 17 mins</Text>
-                </View>
+                </View> */}
               </View>
             </TouchableOpacity>
           );
@@ -335,7 +338,7 @@ const styles = StyleSheet.create({
   headtxt: {
     color: Constants.black,
     // fontWeight: '700',
-    fontSize: 18,
+    fontSize: 16,
     textAlign: 'center',
     marginVertical: 10,
     fontFamily: FONTS.SemiBold,

@@ -139,7 +139,7 @@ const Home = () => {
   };
   const getreviewbyseller = () => {
     setLoading(true);
-    GetApi(`getreviewbyseller?onlyreviewno=true`).then(
+    GetApi(`shoppinggetreviewbyseller?onlyreviewno=true`).then(
       async res => {
         setLoading(false);
         console.log(res);
@@ -358,7 +358,7 @@ console.log('selind',selind)
                 </View>
               )}
             </View>
-            {/* <View style={styles.box3}>
+            <View style={styles.box3}>
               <View style={styles.frow}>
                 <Text style={styles.gratxt1}>Reviews</Text>
                 <Text
@@ -372,7 +372,7 @@ console.log('selind',selind)
                     },
                   ]}
                   onPress={() =>
-                    totalreview && totalreview > 0 && navigate('Reviews')
+                    totalreview && totalreview > 0 && navigate('ShoppingSellerReviews')
                   }>
                   See All Reviews
                 </Text>
@@ -393,7 +393,7 @@ console.log('selind',selind)
               ) : (
                 <Text style={styles.norev}>No review available</Text>
               )}
-            </View> */}
+            </View>
             <View style={styles.box4}>
               <View style={styles.frow}>
                 <Text style={styles.gratxt1}>{t("Populer Items This Weeks")}</Text>

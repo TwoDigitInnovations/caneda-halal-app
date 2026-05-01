@@ -57,7 +57,7 @@ const GrocerySearchpage = () => {
     setPage(p);
     // setLoading(true);
     console.log(p);
-    GetApi(`grocerySearch?page=${p}&key=${text}`).then(
+    GetApi(`grocerySearch?page=${p}&key=${text}&userId=${user?._id || ''}`).then(
       async res => {
         // setLoading(false);
         console.log(res);
@@ -72,6 +72,20 @@ const GrocerySearchpage = () => {
       err => {
         setLoading(false);
         console.log(err);
+      },
+    );
+  };
+
+  const toggleFav = (groceryId) => {
+    setproductlist(prev =>
+      prev.map(p => p._id === groceryId ? {...p, isFavorite: !p.isFavorite} : p),
+    );
+    Post('grocerytogglefavorite', {groceryid: groceryId}).then(
+      () => {},
+      () => {
+        setproductlist(prev =>
+          prev.map(p => p._id === groceryId ? {...p, isFavorite: !p.isFavorite} : p),
+        );
       },
     );
   };
@@ -243,11 +257,8 @@ if (existingCart.length > 0) {
           </View>
         )}
         renderItem={({item}) => {
-          const avgRating =
-            item.reviews?.length > 0
-              ? (item.reviews.reduce((s, r) => s + (r.rating || 0), 0) / item.reviews.length).toFixed(1)
-              : null;
-          const reviewCount = item.reviews?.length || 0;
+          const avgRating = item.averageRating ? Number(item.averageRating).toFixed(1) : null;
+          const reviewCount = item.totalReviews || 0;
           const cartItem = grocerycartdetail?.find(
             f => f.productid === item._id && f.price_slot?.value === item.price_slot?.[0]?.value,
           );
@@ -262,8 +273,10 @@ if (existingCart.length > 0) {
                   style={styles.productCardImg}
                   resizeMode="contain"
                 />
-                <TouchableOpacity style={styles.heartBtn}>
-                  <UnfavIcon height={16} width={16} color={Constants.white} />
+                <TouchableOpacity
+                  style={styles.heartBtn}
+                  onPress={e => { e.stopPropagation?.(); toggleFav(item._id); }}>
+                  <UnfavIcon height={16} width={16} color={item.isFavorite ? '#F14141' : Constants.white} />
                 </TouchableOpacity>
                 {cartItem?.qty > 0 ? (
                   <View style={styles.stepperBtn}>
@@ -297,15 +310,17 @@ if (existingCart.length > 0) {
                   </Text>
                 </View>
                 <Text style={styles.productNameTxt} numberOfLines={2}>{item.name}</Text>
-                <View style={styles.ratingRow}>
-                  <StarIcon height={10} width={10} color="#F5A623" />
-                  <Text style={styles.ratingTxt}> {avgRating ?? '4.9'}</Text>
-                  <Text style={styles.reviewCountTxt}> ({reviewCount || 5840})</Text>
-                </View>
-                <View style={styles.deliveryRow}>
+                {avgRating && (
+                  <View style={styles.ratingRow}>
+                    <StarIcon height={10} width={10} color="#F5A623" />
+                    <Text style={styles.ratingTxt}> {avgRating}</Text>
+                    <Text style={styles.reviewCountTxt}> ({reviewCount})</Text>
+                  </View>
+                )}
+                {/* <View style={styles.deliveryRow}>
                   <ClockIcon height={10} width={10} color={Constants.customgrey} />
                   <Text style={styles.deliveryTxt}> 17 mins</Text>
-                </View>
+                </View> */}
               </View>
             </TouchableOpacity>
           );

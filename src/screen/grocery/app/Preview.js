@@ -1,5 +1,6 @@
 import {
   Dimensions,
+  FlatList,
   Image,
   ImageBackground,
   Platform,
@@ -10,21 +11,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, {useContext, useEffect, useState} from 'react';
-import {SwiperFlatList} from 'react-native-swiper-flatlist';
-import Constants, {Currency, FONTS} from '../../../Assets/Helpers/constant';
+import React, { useContext, useEffect, useState } from 'react';
+import { SwiperFlatList } from 'react-native-swiper-flatlist';
+import Constants, { Currency, FONTS } from '../../../Assets/Helpers/constant';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GroceryCartContext, LoadContext, ToastContext, UserContext} from '../../../../App';
-import {BackIcon, CartIcon, MinusIcon, Plus2Icon, StarIcon, UnfavIcon} from '../../../../Theme';
-import {goBack, navigate} from '../../../../navigationRef';
-import {GetApi, Post} from '../../../Assets/Helpers/Service';
+import { GroceryCartContext, LoadContext, ToastContext, UserContext } from '../../../../App';
+import { BackIcon, CartIcon, ClockIcon, MinusIcon, Plus2Icon, PlusIcon, StarIcon, UnfavIcon, SearchIcon, UparrowIcon, DownarrowIcon } from '../../../../Theme';
+import { goBack, navigate } from '../../../../navigationRef';
+import { GetApi, Post } from '../../../Assets/Helpers/Service';
 import moment from 'moment';
-import DriverHeader from '../../../Assets/Component/DriverHeader';
 import { useTranslation } from 'react-i18next';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const GroceryPreview = props => {
   const productid = props?.route?.params;
-  console.log(productid);
   const { t } = useTranslation();
   const [isalreadyadd, setisalreadyadd] = useState(false);
   const [currentproduct, setcurrentproduct] = useState({});
@@ -37,37 +38,35 @@ const GroceryPreview = props => {
   const [isInCart, setIsInCart] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [availableQty, setAvailableQty] = useState(0);
+  const [showDetails, setShowDetails] = useState(false);
+  const [frequentlyBought, setFrequentlyBought] = useState([]);
 
   const sumdata =
     grocerycartdetail && grocerycartdetail.length > 0
       ? grocerycartdetail.reduce((a, item) => {
-          return Number(a) + Number(item?.offer) * Number(item?.qty);
-        }, 0)
+        return Number(a) + Number(item?.offer) * Number(item?.qty);
+      }, 0)
       : null;
-  console.log(sumdata);
-  
+
   useEffect(() => {
-    {
-      productid && getProductById();
-    }
+    if (productid) getProductById();
   }, []);
+
   useEffect(() => {
-    const currentproduct = grocerycartdetail.find(
+    const current = grocerycartdetail.find(
       item => item?.productid === productdata?._id,
     );
-    setcurrentproduct(currentproduct);
+    setcurrentproduct(current);
   }, [grocerycartdetail]);
 
   useEffect(() => {
     if (grocerycartdetail.length > 0) {
       const cartItem = grocerycartdetail.find(
-        (f) =>
-          f.productid=== productdata?._id &&
-          f.price_slot?.value === selectedslot?.value
+        f =>
+          f.productid === productdata?._id &&
+          f.price_slot?.value === selectedslot?.value,
       );
-
       if (cartItem) {
-        console.log('enter')
         setIsInCart(true);
         setAvailableQty(cartItem.qty);
       } else {
@@ -80,8 +79,7 @@ const GroceryPreview = props => {
     }
   }, [grocerycartdetail, productdata, selectedslot]);
 
-
-  const togglefav = (id) => {
+  const togglefav = id => {
     Post(`grocerytogglefavorite`, { groceryid: id }).then(
       async res => {
         if (res.status) {
@@ -97,11 +95,13 @@ const GroceryPreview = props => {
     GetApi(`getGroceryById/${productid}${user?._id ? `?userId=${user._id}` : ''}`).then(
       async res => {
         setLoading(false);
-        console.log(res);
         if (res.status) {
           setproductdata(res.data);
-          if (res?.data?.price_slot&&res?.data?.price_slot?.length>0) {
-            setsselectedslot(res?.data?.price_slot[0])
+          if (res?.data?.price_slot && res?.data?.price_slot?.length > 0) {
+            setsselectedslot(res?.data?.price_slot[0]);
+          }
+          if (res.data?.sellerid) {
+            fetchFrequentlyBought(res.data.sellerid, res.data._id);
           }
         }
       },
@@ -112,611 +112,985 @@ const GroceryPreview = props => {
     );
   };
 
+  const fetchFrequentlyBought = (sellerId, excludeId) => {
+    const uid = user?._id || '';
+    GetApi(`getTopGroceryBySeller/${sellerId}?excludeIds=${excludeId}&limit=6&userId=${uid}`).then(
+      res => { if (res.status) setFrequentlyBought(res.data); },
+      err => console.log(err),
+    );
+  };
 
   const cartdata = async () => {
-    
-    const existingCart = Array.isArray(grocerycartdetail)
-    ? grocerycartdetail
-    : [];
+    const existingCart = Array.isArray(grocerycartdetail) ? grocerycartdetail : [];
+    const existingProduct = existingCart.find(
+      f =>
+        f.productid === productdata._id &&
+        f.price_slot?.value === selectedslot?.value,
+    );
 
-  // Check if the exact product with selected price_slot exists
-  const existingProduct = existingCart.find(
-    (f) =>
-      f.productid === productdata._id &&
-      f.price_slot?.value === selectedslot?.value
-  );
+    if (existingCart.length > 0) {
+      const currentSellerId = existingCart[0].seller_id;
+      if (productdata.sellerid !== currentSellerId) {
+        const newProduct = {
+          productid: productdata._id,
+          productname: productdata.name,
+          price: selectedslot.other_price,
+          offer: selectedslot.our_price,
+          price_slot: selectedslot,
+          image: productdata.image[0],
+          qty: 1,
+          seller_id: productdata.sellerid,
+          seller_profile: productdata.seller_profile?._id,
+          seller_location: productdata.seller_profile?.location,
+        };
+        const updatedCart = [newProduct];
+        setgrocerycartdetail(updatedCart);
+        await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
+        setAvailableQty(1);
+        return;
+      }
+    }
 
-  if (existingCart.length > 0) {
-    const currentSellerId = existingCart[0].seller_id;
-    
-    // If trying to add product from a different seller
-    if (productdata.sellerid !== currentSellerId) {
-      console.log("Different seller detected, clearing cart...");
-
-      // 🧹 Clear old cart and add new item
+    if (!existingProduct) {
       const newProduct = {
         productid: productdata._id,
-      productname: productdata.name,
-      price: selectedslot.other_price,
-      offer: selectedslot.our_price,
-      price_slot:selectedslot,
-      image: productdata.image[0],
-      qty: 1,
-      seller_id: productdata.sellerid,
-      seller_profile: productdata.seller_profile?._id,
-      seller_location: productdata.seller_profile?.location,
+        productname: productdata.name,
+        price: selectedslot.other_price,
+        offer: selectedslot.our_price,
+        price_slot: selectedslot,
+        image: productdata.image[0],
+        qty: 1,
+        seller_id: productdata.sellerid,
+        seller_profile: productdata.seller_profile?._id,
+        seller_location: productdata.seller_profile?.location,
       };
-
-      const updatedCart = [newProduct];
+      const updatedCart = [...existingCart, newProduct];
       setgrocerycartdetail(updatedCart);
       await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
-      setAvailableQty(1); // Update UI
-      console.log("New product added after clearing cart:", newProduct);
-      return;
     }
-  }
-
-  if (!existingProduct) {
-    const newProduct = {
-      // ...productdata,
-      // qty: availableQty || 1,
-      // price: selectedslot.our_price,
-      // price_slot: selectedslot,
-      productid: productdata._id,
-      productname: productdata.name,
-      price: selectedslot.other_price,
-      offer: selectedslot.our_price,
-      price_slot:selectedslot,
-      image: productdata.image[0],
-      qty: 1,
-      seller_id: productdata.sellerid,
-      seller_profile: productdata.seller_profile?._id,
-      seller_location: productdata.seller_profile?.location,
-    };
-
-    const updatedCart = [...existingCart, newProduct];
-    setgrocerycartdetail(updatedCart);
-    await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart))
-    console.log("Product added to cart:", newProduct);
-  } else {
-    console.log(
-      "Product already in cart with this price slot:",
-      existingProduct
-    );
-  }
   };
 
-  const formatPricePerUnit = (price, quantity, unit) => {
-    let unitText = "";
-    let factor = 1;
-  
-    switch (unit?.toLowerCase()) {
-      case "kg":
-        unitText = "1 kg";
-        factor = 1; // 1 kg = 1000 g → 100 g = 1/10 of the price
-        break;
-      case "gm":
-        unitText = "100 gms";
-        factor = 100; // Convert the given grams into 100 gms equivalent
-        break;
-      case "litre":
-        unitText = "1 liter";
-        factor = 1; // 1 litre = 1000 ml → 100 ml = 1/10 of the price
-        break;
-      case "ml":
-        unitText = "100 ml";
-        factor = 100; // Convert the given ml into 100 ml equivalent
-        break;
-      case "piece":
-        unitText = "per piece";
-        factor = 1; // Price remains the same
-        break;
-      case "pack":
-        unitText = "per pack";
-        factor = 1; // Price remains the same
-        break;
-      default:
-        return "Invalid unit";
-    }
-  
-    const calculatedPrice = (price / quantity) * factor;
-    return `${Currency} ${calculatedPrice.toFixed(2)} / ${unitText}`;
-  };
-  
-    const CustomPagination = ({data, index}) => {
-      return (
-        <View style={styles.paginationContainer}>
-          {data.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                i === index ? styles.activeDot : styles.inactiveDot,
-              ]}
-            />
-          ))}
-        </View>
-      );
-    };
+  const discountPercent =
+    selectedslot?.other_price && selectedslot?.our_price
+      ? (((selectedslot.other_price - selectedslot.our_price) / selectedslot.other_price) * 100).toFixed(0)
+      : null;
 
-  const width = Dimensions.get('window').width - 40;
+  const isVeg = productdata?.grocerycategory?.name?.toLowerCase().includes('veg') ||
+    productdata?.categoryName?.toLowerCase().includes('veg') ||
+    true; // default veg indicator
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.rowbtn}>
-             <TouchableOpacity style={styles.backcov} onPress={() => goBack()}>
-                     <BackIcon  />
-                       </TouchableOpacity>
-              <Text style={styles.headtxt}>{t("Product detail")}</Text>
-              <View></View>
-            </View>
-      <ScrollView showsVerticalScrollIndicator={false} style={{padding:20}}>
-        <View style={{marginTop: 15}}>
-                  <SwiperFlatList
-                    data={productdata?.image || []}
-                    onChangeIndex={({index}) => setCurrentIndex(index)}
-                    renderItem={({item, index}) => (
-                      <View
-                        style={{paddingBottom: 5, width: width, alignItems: 'center'}}>
-                        <Image
-                            source={{uri: `${item}`}}
-                          // source={item.image}
-                          style={{
-                            height: 250,
-                            width: '93%',
-                            borderRadius: 20,
-                          }}
-                          resizeMode="stretch"
-                          key={index}
-                        />
-                      </View>
-                    )}
-                  />
-                  <TouchableOpacity style={styles.faviconcov} onPress={() => togglefav(productdata?._id)}>
-                    <UnfavIcon color={productdata?.isFavorite ? '#F14141' : null}/>
-                  </TouchableOpacity>
-                  {productdata?.image&&productdata?.image.length>0&&<CustomPagination data={productdata?.image} index={currentIndex} />}
-                </View>
-        <Text style={styles.proname}>{productdata?.name}</Text>
-        <View style={{flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 6, gap: 8}}>
-          {productdata?.averageRating && (
-            <View style={styles.ratingBadge}>
-              <StarIcon color={'#fff'} width={12} height={12} />
-              <Text style={styles.ratingText}>{Number(productdata.averageRating).toFixed(1)}</Text>
-            </View>
-          )}
-          {productdata?.totalReviews > 0 && (
-            <Text style={styles.reviewCount}>{t('By')} {productdata.totalReviews}+ {t('people')}</Text>
-          )}
-        </View>
-        <Text style={[styles.dectitle,{marginLeft:10}]}>{productdata?.short_description}</Text>
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-          {productdata?.price_slot &&
-            productdata?.price_slot.length > 0 &&
-            productdata?.price_slot[0].unit&&
-            productdata.price_slot.map((item,i) => (
-              <TouchableOpacity style={[styles.box,{marginRight:productdata?.price_slot.length===i+1?20:10,backgroundColor:selectedslot?.value===item.value?Constants.light_green:null,borderColor:selectedslot?.value===item.value?Constants.linearcolor:Constants.customgrey5}]} key={i} onPress={()=>setsselectedslot(item)}>
-                <ImageBackground
-                  source={require('../../../Assets/Images/star.png')}
-                  style={styles.cardimg2}>
-                  <Text style={styles.offtxt}>{(
-                  ((item?.other_price - item?.our_price) /
-                    item?.other_price) *
-                  100
-                ).toFixed(0)}%</Text>
-                  <Text style={styles.offtxt}>{t("off")}</Text>
-                </ImageBackground>
-                <Text style={styles.weight}>{item?.value}{item.unit}</Text>
-                <View style={{}}>
-                  <Text style={styles.maintxt}>{Currency}{item.our_price}</Text>
-                  <Text style={styles.disctxt}>{formatPricePerUnit(item.our_price, item?.value, item.unit)}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-        </ScrollView>
-        <View style={styles.pricecov}>
-          <View style={{flexDirection: 'row', gap: 10}}>
-            <Text style={styles.maintxt2}>{Currency} {selectedslot?.our_price}</Text>
-            {selectedslot?.our_price && (
-              <Text
-                style={[styles.weight, {textDecorationLine: 'line-through'}]}>
-                {Currency} {selectedslot?.other_price}
-              </Text>
+    <View style={styles.container}>
+
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+        {/* Product Image Swiper */}
+        <View style={styles.imageContainer}>
+          <SwiperFlatList
+            data={productdata?.image || []}
+            onChangeIndex={({ index }) => setCurrentIndex(index)}
+            renderItem={({ item, index }) => (
+              <View style={{ width: SCREEN_WIDTH }}>
+                <Image
+                  source={{ uri: item }}
+                  style={styles.productImage}
+                  resizeMode="contain"
+                  key={index}
+                />
+              </View>
             )}
-            {selectedslot?.our_price && (
-              <Text style={styles.disctxt2}>
-                {(
-                  ((selectedslot?.other_price - selectedslot?.our_price) /
-                    selectedslot?.other_price) *
-                  100
-                ).toFixed(0)}
-                % off
-              </Text>
+          />
+          {/* Pagination dots */}
+          {productdata?.image && productdata.image.length > 1 && (
+            <View style={styles.paginationRow}>
+              {productdata.image.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    i === currentIndex ? styles.activeDot : styles.inactiveDot,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          <View style={styles.header}>
+        <TouchableOpacity style={styles.headerIconBtn} onPress={() => goBack()}>
+          <BackIcon width={20} height={20} />
+        </TouchableOpacity>
+        {/* <View style={styles.headerRight}> */}
+          <TouchableOpacity style={styles.headerIconBtn}>
+            <UnfavIcon
+              color={productdata?.isFavorite ? '#F14141' : '#fff'}
+              width={20}
+              height={20}
+              onPress={() => togglefav(productdata?._id)}
+            />
+          </TouchableOpacity>
+          {/* <TouchableOpacity style={styles.headerIconBtn}>
+            <SearchIcon width={20} height={20} />
+          </TouchableOpacity> */}
+          {/* <TouchableOpacity style={styles.headerIconBtn}>
+            <ShareIcon width={20} height={20} />
+          </TouchableOpacity> */}
+        {/* </View> */}
+      </View>
+        </View>
+
+        {/* Product Info */}
+        <View style={styles.infoSection}>
+          {/* Veg Badge */}
+          {/* <View style={styles.vegRow}>
+            <View style={styles.vegBadge}>
+              <View style={styles.vegDot} />
+            </View>
+            <Text style={styles.vegText}>{t('Veg')}</Text>
+          </View> */}
+
+          {/* Rating & Delivery */}
+          <View style={styles.ratingRow}>
+            {productdata?.averageRating && (
+              <View style={styles.ratingChip}>
+                <StarIcon color="#FFB800" width={13} height={13} />
+                <Text style={styles.ratingVal}>{Number(productdata.averageRating).toFixed(1)}</Text>
+                {productdata?.totalReviews > 0 && (
+                  <Text style={styles.ratingCount}> ({productdata.totalReviews})</Text>
+                )}
+              </View>
+            )}
+            {/* <View style={styles.dot2} />
+            <Text style={styles.deliveryTime}>⏱ 17 mins</Text> */}
+          </View>
+
+          {/* Product Name */}
+          <Text style={styles.productName}>{productdata?.name}</Text>
+
+          {/* Price */}
+          <View style={styles.priceRow}>
+            <Text style={styles.mainPrice}>{Currency}{selectedslot?.our_price}</Text>
+            {selectedslot?.other_price && selectedslot.other_price !== selectedslot.our_price && (
+              <Text style={styles.strikePrice}>{Currency}{selectedslot?.other_price}</Text>
+            )}
+            {discountPercent && (
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountBadgeText}>{discountPercent}% OFF</Text>
+              </View>
             )}
           </View>
-          {isInCart ? 
-            <View style={styles.addcov}>
-              <TouchableOpacity
-                style={styles.plus}
-                onPress={async () => {
-                  if (availableQty > 1) {
-                    // Decrease quantity
-                    const updatedCart = grocerycartdetail.map(item => {
-                      if (
-                        item.productid === currentproduct?.productid &&
-                        item.price_slot?.value === selectedslot?.value
-                      ) {
-                        return {
-                          ...item,
-                          qty: item.qty - 1,
-                          price: selectedslot.other_price,
-                          offer: selectedslot.our_price,
-                          price_slot: selectedslot,
-                        };
-                      }
-                      return item;
-                    });
-                  
-                    setgrocerycartdetail(updatedCart);
-                    await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
-                    console.log('Product quantity decreased:', currentproduct?.productname);
-              
-                    setAvailableQty(availableQty - 1);
-                  } else {
-                    // Remove product from cart if qty is 1
-                    const updatedCart = grocerycartdetail.filter(item => {
-                      return !(
-                        item.productid === currentproduct?.productid &&
-                        item.price_slot?.value === selectedslot?.value
-                      );
-                    });
-                  
-                    setgrocerycartdetail(updatedCart);
-                    await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
-                    console.log('Product removed from cart:', currentproduct?.productname);
-                  
-                    setIsInCart(false);
-                    setAvailableQty(0);
-                  }
-                  
-                }}>
-                <MinusIcon color={Constants.white} height={20} width={20}/>
-              </TouchableOpacity>
-              <Text style={styles.plus2}>{availableQty}</Text>
-              <TouchableOpacity
-                style={styles.plus3}
-                onPress={async () => {
+
+          {/* Tax Note */}
+          {/* {selectedslot && (
+            <Text style={styles.taxNote}>{Currency}{selectedslot?.our_price} {t('Inclusive of all taxes')}</Text>
+          )} */}
+
+          {/* View Product Details Toggle */}
+          <TouchableOpacity
+            style={styles.detailsToggle}
+            onPress={() => setShowDetails(!showDetails)}
+            activeOpacity={0.7}>
+            <Text style={styles.detailsToggleText}>
+              {showDetails ? t('Hide Product details') : t('View Product details')}
+            </Text>
+            {showDetails ? <UparrowIcon /> : <DownarrowIcon color={Constants.normal_green} />}
+          </TouchableOpacity>
+
+          {/* Collapsible Details */}
+          {showDetails && (
+            <View style={styles.detailsBox}>
+              <Text style={styles.detailsBoxTitle}>{t('Key Information')}</Text>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailKey}>{t('Category')}</Text>
+                <Text style={styles.detailVal}>{productdata?.grocerycategory?.name || productdata?.categoryName}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailKey}>{t('Manufacturer')}</Text>
+                <Text style={styles.detailVal}>{productdata?.manufacturername}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailKey}>{t('Expiry Date')}</Text>
+                <Text style={styles.detailVal}>{moment(productdata?.expirydate).format('DD MMM YYYY')}</Text>
+              </View>
+              {productdata?.short_description ? (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>{t('Description')}</Text>
+                  <Text style={styles.detailVal}>{productdata?.short_description}</Text>
+                </View>
+              ) : null}
+              {productdata?.long_description ? (
+                <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                  <Text style={styles.detailKey}>{t('Details')}</Text>
+                  <Text style={styles.detailVal}>{productdata?.long_description}</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </View>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Weight/Slot Selector */}
+        {productdata?.price_slot && productdata.price_slot.length > 0 && productdata.price_slot[0].unit && (
+          <View style={styles.slotSection}>
+            <Text style={styles.slotSectionTitle}>{t('Select Pack Size')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+              {productdata.price_slot.map((item, i) => {
+                const slotDiscount = (((item.other_price - item.our_price) / item.other_price) * 100).toFixed(0);
+                const isSelected = selectedslot?.value === item.value;
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[styles.slotCard, isSelected && styles.slotCardActive, { marginRight: i === productdata.price_slot.length - 1 ? 20 : 10 }]}
+                    onPress={() => setsselectedslot(item)}>
+                    {slotDiscount > 0 && (
+                      <View style={styles.slotDiscountBadge}>
+                        <Text style={styles.slotDiscountText}>{slotDiscount}% OFF</Text>
+                      </View>
+                    )}
+                    <Text style={[styles.slotWeight, isSelected && styles.slotWeightActive]}>
+                      {item.value}{item.unit}
+                    </Text>
+                    <Text style={[styles.slotPrice, isSelected && styles.slotPriceActive]}>
+                      {Currency}{item.our_price}
+                    </Text>
+                    {item.other_price !== item.our_price && (
+                      <Text style={styles.slotOldPrice}>{Currency}{item.other_price}</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Frequently Bought */}
+        {frequentlyBought.length > 0 && (
+          <View style={styles.freqSection}>
+            <Text style={styles.freqTitle}>{t('Frequently Bought')}</Text>
+            <FlatList
+              data={frequentlyBought}
+              numColumns={2}
+              scrollEnabled={false}
+              keyExtractor={item => item._id}
+              contentContainerStyle={{paddingHorizontal: 12, paddingTop: 8}}
+              columnWrapperStyle={{gap: 8, marginBottom: 8}}
+              renderItem={({item}) => {
+                const avgRating = item.averageRating ? Number(item.averageRating).toFixed(1) : null;
+                const reviewCount = item.totalReviews || 0;
+                const cartItem = grocerycartdetail?.find(
+                  f => f.productid === item._id && f.price_slot?.value === item.price_slot?.[0]?.value,
+                );
+                return (
+                  <TouchableOpacity
+                    style={styles.freqCard}
+                    activeOpacity={0.85}
+                    onPress={() => navigate('GroceryPreview', item._id)}>
+                    <View style={styles.freqImgContainer}>
+                      <Image
+                        source={{uri: item.image?.[0]}}
+                        style={styles.freqCardImg}
+                        resizeMode="contain"
+                      />
+                      {cartItem?.qty > 0 ? (
+                        <View style={styles.freqStepperBtn}>
+                          <TouchableOpacity
+                            style={styles.freqStepperTouch}
+                            onPress={async e => {
+                              e.stopPropagation?.();
+                              const existingCart = Array.isArray(grocerycartdetail) ? grocerycartdetail : [];
+                              const updatedCart = cartItem.qty <= 1
+                                ? existingCart.filter(f => !(f.productid === item._id && f.price_slot?.value === item.price_slot?.[0]?.value))
+                                : existingCart.map(f => f.productid === item._id && f.price_slot?.value === item.price_slot?.[0]?.value ? {...f, qty: f.qty - 1} : f);
+                              setgrocerycartdetail(updatedCart);
+                              await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
+                            }}>
+                            <MinusIcon color={Constants.normal_green} height={10} width={10} />
+                          </TouchableOpacity>
+                          <Text style={styles.freqStepperQty}>{cartItem.qty}</Text>
+                          <TouchableOpacity
+                            style={styles.freqStepperTouch}
+                            onPress={async e => {
+                              e.stopPropagation?.();
+                              const existingCart = Array.isArray(grocerycartdetail) ? grocerycartdetail : [];
+                              const updatedCart = existingCart.map(f => f.productid === item._id && f.price_slot?.value === item.price_slot?.[0]?.value ? {...f, qty: f.qty + 1} : f);
+                              setgrocerycartdetail(updatedCart);
+                              await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
+                            }}>
+                            <PlusIcon color={Constants.normal_green} height={10} width={10} />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.freqAddBtn}
+                          onPress={async e => {
+                            e.stopPropagation?.();
+                            const existingCart = Array.isArray(grocerycartdetail) ? grocerycartdetail : [];
+                            const newProduct = {
+                              productid: item._id,
+                              productname: item.name,
+                              price: item?.price_slot?.[0]?.other_price,
+                              offer: item?.price_slot?.[0]?.our_price,
+                              image: item.image?.[0],
+                              price_slot: item?.price_slot?.[0],
+                              qty: 1,
+                              seller_id: item.sellerid,
+                              seller_profile: item.seller_profile?._id,
+                              seller_location: item.seller_profile?.location,
+                            };
+                            const updatedCart = [...existingCart, newProduct];
+                            setgrocerycartdetail(updatedCart);
+                            await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
+                          }}>
+                          <Text style={styles.freqAddBtnTxt}>ADD+</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <View style={styles.freqInfo}>
+                      <View style={styles.freqPriceRow}>
+                        <Text style={styles.freqPriceTxt}>{Currency}{item.price_slot?.[0]?.our_price}</Text>
+                        <Text style={styles.freqWeightTxt}> {item.price_slot?.[0]?.value}{item.price_slot?.[0]?.unit}</Text>
+                      </View>
+                      <Text style={styles.freqNameTxt} numberOfLines={2}>{item.name}</Text>
+                      {avgRating && (
+                        <View style={styles.freqRatingRow}>
+                          <StarIcon height={10} width={10} color="#F5A623" />
+                          <Text style={styles.freqRatingTxt}> {avgRating}</Text>
+                          <Text style={styles.freqReviewTxt}> ({reviewCount})</Text>
+                        </View>
+                      )}
+                      {/* <View style={styles.freqDeliveryRow}>
+                        <ClockIcon height={10} width={10} color={Constants.customgrey} />
+                        <Text style={styles.freqDeliveryTxt}> 17 mins</Text>
+                      </View> */}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        )}
+
+        {/* Bottom padding for cart bar */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Sticky Bottom Bar */}
+      <View style={styles.stickyBottom}>
+        <View style={styles.stickyPriceCol}>
+          <Text style={styles.stickyWeight}>
+            {selectedslot?.value}{selectedslot?.unit}
+          </Text>
+          <Text style={styles.stickyPrice}>{Currency}{selectedslot?.our_price}</Text>
+          {/* <Text style={styles.stickyTax}>{t('Inclusive of all taxes')}</Text> */}
+        </View>
+
+        {isInCart ? (
+          <View style={styles.qtyControl}>
+            <TouchableOpacity
+              style={styles.qtyBtn}
+              onPress={async () => {
+                if (availableQty > 1) {
                   const updatedCart = grocerycartdetail.map(item => {
                     if (
                       item.productid === currentproduct?.productid &&
                       item.price_slot?.value === selectedslot?.value
                     ) {
-                      return {
-                        ...item,
-                        qty: item.qty + 1,
-                        price: selectedslot.other_price,
-                        offer: selectedslot.our_price,
-                        price_slot: selectedslot,
-                      };
+                      return { ...item, qty: item.qty - 1 };
                     }
                     return item;
                   });
-                  
                   setgrocerycartdetail(updatedCart);
                   await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
-                  console.log('Product quantity increased:', currentproduct?.productname);
-                }}>
-                <Plus2Icon color={Constants.white} height={20} width={20} />
-              </TouchableOpacity>
-            </View>
-          :<Text style={styles.addbtn} onPress={() => cartdata()}>
-          {t("ADD")}
-        </Text>}
-        </View>
-        <View style={styles.line}></View>
-        <View style={styles.productinfocov}>
-          <Text style={styles.proddec}>{t("Product Information")}</Text>
-          <View style={styles.expirycard}>
-            <Text style={styles.exptxt}>{t("EXPIRY DATE")}</Text>
-            <Text style={styles.exptxt2}>{moment(productdata?.expirydate).format('DD MMM yyyy')}</Text>
+                  setAvailableQty(availableQty - 1);
+                } else {
+                  const updatedCart = grocerycartdetail.filter(item =>
+                    !(item.productid === currentproduct?.productid &&
+                      item.price_slot?.value === selectedslot?.value),
+                  );
+                  setgrocerycartdetail(updatedCart);
+                  await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
+                  setIsInCart(false);
+                  setAvailableQty(0);
+                }
+              }}>
+              <MinusIcon color="#fff" height={16} width={16} />
+            </TouchableOpacity>
+            <Text style={styles.qtyText}>{availableQty}</Text>
+            <TouchableOpacity
+              style={styles.qtyBtn}
+              onPress={async () => {
+                const updatedCart = grocerycartdetail.map(item => {
+                  if (
+                    item.productid === currentproduct?.productid &&
+                    item.price_slot?.value === selectedslot?.value
+                  ) {
+                    return { ...item, qty: item.qty + 1 };
+                  }
+                  return item;
+                });
+                setgrocerycartdetail(updatedCart);
+                await AsyncStorage.setItem('grocerycartdata', JSON.stringify(updatedCart));
+                setAvailableQty(availableQty + 1);
+              }}>
+              <Plus2Icon color="#fff" height={16} width={16} />
+            </TouchableOpacity>
           </View>
-        </View>
-          <Text style={styles.dectitle}>{productdata?.long_description}</Text>
-        <View style={{marginVertical: 10}}>
-          <Text style={styles.dechead}>{t("MANUFACTURER NAME")}</Text>
-          <Text style={styles.dectitle}>{productdata?.manufacturername}</Text>
-        </View>
-        <View style={{marginVertical: 10, marginBottom: 120}}>
-          <Text style={styles.dechead}>{t("MANUFACTURER ADDRESS")}</Text>
-          <Text style={styles.dectitle}>
-            {productdata?.manufactureradd}
-          </Text>
-        </View>
-      </ScrollView>
-      {currentproduct && (
+        ) : (
+          <TouchableOpacity style={styles.addToCartBtn} onPress={cartdata}>
+            <Text style={styles.addToCartText}>{t('Add to cart')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* View Cart Bar */}
+      {currentproduct && grocerycartdetail.length > 0 && (
         <TouchableOpacity
-          style={styles.cartbtn}
-          onPress={() => navigate('Grocerytab',{screen:'Cart'})}>
-          <Text style={styles.buttontxt}>
-            {' '}
-            {grocerycartdetail.length} items | {Currency}{sumdata}
+          style={styles.viewCartBar}
+          onPress={() => navigate('Grocerytab', { screen: 'Cart' })}>
+          <Text style={styles.viewCartLeft}>
+            {grocerycartdetail.length} {t('items')} | {Currency}{sumdata}
           </Text>
-          <View style={{flexDirection: 'row'}}>
-            <CartIcon color={Constants.white} style={{marginRight: 5}} />
-            <Text style={styles.buttontxt}>{t("View Cart")}</Text>
+          <View style={styles.viewCartRight}>
+            <CartIcon color="#fff" width={18} height={18} />
+            <Text style={styles.viewCartText}>{t('View Cart')}</Text>
           </View>
         </TouchableOpacity>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default GroceryPreview;
 
+const LIGHT_GREEN = '#E8F5E9';
+const BORDER = '#E8E8E8';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Constants.white,
-    paddingVertical: 10,
+    backgroundColor: '#fff',
   },
-   headtxt: {
-    color: Constants.black,
-    fontSize: 16,
-    fontFamily: FONTS.SemiBold,
-  },
-   backcov: {
-    height: 30,
-    width: 30,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Constants.customgrey4,
-  },
-  rowbtn: {
+
+  // Header
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginTop:Platform.OS === 'ios' ? 10 : 0,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingTop: Platform.OS === 'android' ? 14 : 10,
+    position:'absolute',
+    top:10,
+    width:'100%',
+    // backgroundColor: 'red',
   },
-  paginationContainer: {
+  headerIconBtn: {
+    height: 38,
+    width: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFFB2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    boxShadow: '0 0px 5.9px 0px #0000002B',
+  },
+  headerRight: {
+    flexDirection: 'row',
+  },
+
+  // Image
+  imageContainer: {
+    // backgroundColor: '#F8F8F8',
+    position: 'relative',
+    top: -10,
+  },
+  productImage: {
+    height: 280,
+    width: SCREEN_WIDTH,
+  },
+  paginationRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    position: 'absolute',
-    bottom: 20,
-    alignSelf: 'center',
-    // marginTop: 10,
+    // paddingVertical: 10,
+    gap: 5,
   },
   dot: {
-    height: 5,
-    borderRadius: 3,
-    marginHorizontal: 4,
+    height: 7,
+    borderRadius: 4,
+    marginHorizontal: 3,
+    marginTop:5,
   },
   activeDot: {
-    width: 30,
+    width: 7,
     backgroundColor: Constants.normal_green,
   },
   inactiveDot: {
-    width: 30,
-    backgroundColor: Constants.white,
+    width: 7,
+    backgroundColor: '#C8C8C8',
   },
-  proname: {
-    fontSize: 16,
-    color: Constants.black,
-    fontFamily: FONTS.SemiBold,
-    marginBottom: 10,
-    marginLeft: 10,
-    marginTop:10
+
+  // Info Section
+  infoSection: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    backgroundColor: '#fff',
   },
-  weight: {
-    fontSize: 14,
-    color: Constants.black,
-    fontFamily: FONTS.Regular,
-    marginVertical: 5,
+  vegRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 6,
   },
-  disctxt: {
-    fontSize: 14,
-    color: Constants.linearcolor,
-    fontFamily: FONTS.Regular,
-  },
-  disctxt2: {
-    fontSize: 16,
-    color: Constants.normal_green,
-    fontFamily: FONTS.Medium,
-    alignSelf: 'center',
-  },
-  maintxt: {
-    fontSize: 16,
-    color: Constants.black,
-    fontFamily: FONTS.SemiBold,
-    // textDecorationLine: 'line-through',
-  },
-  maintxt2: {
-    fontSize: 18,
-    color: Constants.linearcolor,
-    fontFamily: FONTS.SemiBold,
-    // textDecorationLine: 'line-through',
-  },
-  box: {
-    backgroundColor: Constants.light_green,
-    width: 150,
-    padding: 10,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: Constants.linearcolor,
-    marginLeft:10,
-    marginTop:10
-  },
-  cardimg2: {
-    height: 45,
-    width: 45,
-    position: 'absolute',
-    right: -7,
-    top: -10,
+  vegBadge: {
+    height: 18,
+    width: 18,
+    borderRadius: 3,
+    borderWidth: 1.5,
+    borderColor: Constants.normal_green,
     justifyContent: 'center',
     alignItems: 'center',
-    // zIndex:99
-    // backgroundColor:Constants.red
   },
-  offtxt: {
-    fontSize: 12,
-    color: Constants.white,
-    fontFamily: FONTS.Black,
-    marginLeft: 2,
-  },
-  addbtn: {
-    backgroundColor: Constants.normal_green,
-    color: Constants.white,
-    paddingHorizontal: 25,
-    paddingVertical: 7,
+  vegDot: {
+    height: 9,
+    width: 9,
     borderRadius: 5,
-    fontSize: 16,
-    fontFamily: FONTS.SemiBold,
-    // position: 'absolute',
-    // right: 0,
+    backgroundColor: Constants.normal_green,
   },
-  line: {
-    height: 4,
-    backgroundColor: Constants.customgrey3,
-    width: '120%',
-    marginLeft: -20,
-  },
-  pricecov: {
-    flexDirection: 'row',
-    marginVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  proddec: {
-    fontSize: 16,
-    color: Constants.black,
-    fontFamily: FONTS.SemiBold,
-    width: '50%',
-    // marginTop:20
-  },
-  dechead: {
-    fontSize: 14,
-    color: Constants.black,
-    fontFamily: FONTS.SemiBold,
-    // marginTop:20
-  },
-  dectitle: {
-    fontSize: 14,
-    color: Constants.customgrey,
-    fontFamily: FONTS.Regular,
-    // marginTop:20
-  },
-  productinfocov: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  expirycard: {
-    backgroundColor: '#EDEDED',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  exptxt: {
-    fontSize: 12,
-    color: Constants.black,
+  vegText: {
+    fontSize: 13,
+    color: Constants.normal_green,
     fontFamily: FONTS.SemiBold,
   },
-  exptxt2: {
-    fontSize: 14,
-    color: Constants.linearcolor,
-    fontFamily: FONTS.Medium,
-  },
-  faviconcov: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 20,
-    padding: 6,
-  },
-  ratingBadge: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Constants.normal_green,
-    borderRadius: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    marginBottom: 8,
+    gap: 8,
+  },
+  ratingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 3,
   },
-  ratingText: {
-    color: '#fff',
-    fontSize: 12,
+  ratingVal: {
+    fontSize: 13,
+    color: '#333',
     fontFamily: FONTS.SemiBold,
   },
-  reviewCount: {
-    fontSize: 12,
-    color: Constants.customgrey,
+  ratingCount: {
+    fontSize: 13,
+    color: '#888',
     fontFamily: FONTS.Regular,
   },
-  addcov: {
-    flexDirection: 'row',
-    width: 120,
-    height: 40,
-    // borderRadius:10
+  dot2: {
+    height: 4,
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: '#CCC',
   },
-  plus: {
-    backgroundColor: Constants.normal_green,
-    // color: Constants.white,
-    flex: 1,
-    // textAlign: 'center',
-    height: '100%',
-    // paddingVertical: '5%',
-    // fontSize: 30,
-    alignSelf: 'center',
-    // fontFamily: FONTS.SemiBold,
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
-    justifyContent:'center',
-    alignItems:'center'
+  deliveryTime: {
+    fontSize: 13,
+    color: '#555',
+    fontFamily: FONTS.Regular,
   },
-  plus2: {
-    backgroundColor: '#F3F3F3',
-    color: Constants.black,
-    flex: 1,
-    textAlign: 'center',
-    height: '100%',
-    paddingVertical: '5%',
-    fontSize: 20,
-    alignSelf: 'center',
-    fontFamily: FONTS.Black,
-  },
-  plus3: {
-    backgroundColor: Constants.normal_green,
-    // color: Constants.white,
-    flex: 1,
-    // textAlign: 'center',
-    height: '100%',
-    // paddingVertical: '2%',
-    // fontSize: 30,
-    alignSelf: 'center',
-    // fontFamily: FONTS.SemiBold,
-    borderTopRightRadius: 10,
-    borderBottomRightRadius: 10,
-    justifyContent:'center',
-    alignItems:'center'
-  },
-  buttontxt: {
-    color: Constants.white,
+  productName: {
     fontSize: 16,
+    color: '#1C1C1C',
+    fontFamily: FONTS.SemiBold,
+    lineHeight: 26,
+    marginBottom: 10,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
+  mainPrice: {
+    fontSize: 18,
+    color: '#1C1C1C',
     fontFamily: FONTS.SemiBold,
   },
-  cartbtn: {
-    height: 60,
-    // width: 370,
+  strikePrice: {
+    fontSize: 14,
+    color: '#999',
+    fontFamily: FONTS.Regular,
+    textDecorationLine: 'line-through',
+  },
+  discountBadge: {
+    backgroundColor: Constants.light_green,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  discountBadgeText: {
+    color: Constants.normal_green,
+    fontSize: 12,
+    fontFamily: FONTS.SemiBold,
+    lineHeight: 16,
+  },
+  taxNote: {
+    fontSize: 12,
+    color: '#999',
+    fontFamily: FONTS.Regular,
+    marginBottom: 12,
+  },
+
+  // Details Toggle
+  detailsToggle: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    // marginTop: 4,
+    flexDirection:'row',
+    alignItems:'center',
+    gap:5
+  },
+  detailsToggleText: {
+    fontSize: 14,
+    color: Constants.normal_green,
+    fontFamily: FONTS.Medium,
+  },
+  detailsBox: {
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  detailsBoxTitle: {
+    fontSize: 14,
+    color: '#1C1C1C',
+    fontFamily: FONTS.SemiBold,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  detailKey: {
+    flex: 1,
+    fontSize: 13,
+    color: '#666',
+    fontFamily: FONTS.Regular,
+  },
+  detailVal: {
+    flex: 1.5,
+    fontSize: 13,
+    color: '#1C1C1C',
+    fontFamily: FONTS.Regular,
+    textAlign: 'right',
+  },
+
+  // Divider
+  divider: {
+    height: 8,
+    backgroundColor: '#F2F2F2',
+    marginTop: 16,
+  },
+
+  // Slot Selector
+  slotSection: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  slotSectionTitle: {
+    fontSize: 15,
+    color: '#1C1C1C',
+    fontFamily: FONTS.SemiBold,
+  },
+  slotCard: {
+    width: 105,
+    padding: 12,
     borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    backgroundColor: '#fff',
+    marginLeft: 4,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  slotCardActive: {
+    borderColor: Constants.normal_green,
+    backgroundColor: LIGHT_GREEN,
+  },
+  slotDiscountBadge: {
     backgroundColor: Constants.normal_green,
-    // marginTop: 40,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  slotDiscountText: {
+    color: '#fff',
+    fontSize: 10,
+    fontFamily: FONTS.SemiBold,
+    lineHeight: 16,
+  },
+  slotWeight: {
+    fontSize: 14,
+    color: '#555',
+    fontFamily: FONTS.Regular,
+    marginBottom: 2,
+  },
+  slotWeightActive: {
+    color: Constants.normal_green,
+    fontFamily: FONTS.SemiBold,
+  },
+  slotPrice: {
+    fontSize: 15,
+    color: '#1C1C1C',
+    fontFamily: FONTS.SemiBold,
+  },
+  slotPriceActive: {
+    color: Constants.normal_green,
+  },
+  slotOldPrice: {
+    fontSize: 11,
+    color: '#AAA',
+    fontFamily: FONTS.Regular,
+    textDecorationLine: 'line-through',
+    marginTop: 1,
+  },
+
+  // Sticky Bottom Bar
+  stickyBottom: {
+    position: 'absolute',
+    bottom: grocerycartdetail => (grocerycartdetail?.length > 0 ? 80 : 20),
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    bottom: 0,
+    paddingBottom: 3,
+  },
+  stickyPriceCol: {
+    flex: 1,
+  },
+  stickyWeight: {
+    fontSize: 12,
+    color: '#888',
+    fontFamily: FONTS.Regular,
+  },
+  stickyPrice: {
+    fontSize: 16,
+    color: '#1C1C1C',
+    fontFamily: FONTS.SemiBold,
+  },
+  stickyTax: {
+    fontSize: 11,
+    color: '#AAA',
+    fontFamily: FONTS.Regular,
+  },
+  addToCartBtn: {
+    backgroundColor: Constants.normal_green,
+    paddingHorizontal: 32,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  addToCartText: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: FONTS.SemiBold,
+  },
+
+  // Qty Control
+  qtyControl: {
+    flexDirection: 'row',
+    backgroundColor: Constants.normal_green,
+    borderRadius: 10,
+    overflow: 'hidden',
+    // height: 46,
+    paddingVertical: 7,
+    width: 130,
+  },
+  qtyBtn: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qtyText: {
+    flex: 1,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: FONTS.SemiBold,
+    // backgroundColor: 'rgba(255,255,255,0.15)',
+    // lineHeight: 46,
+  },
+
+  // View Cart Bar
+  viewCartBar: {
+    position: 'absolute',
+    bottom: 65,
+    left: 16,
+    right: 16,
+    backgroundColor: Constants.normal_green,
+    borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 18,
+    height: 54,
+    shadowColor: Constants.normal_green,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  viewCartLeft: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: FONTS.SemiBold,
+  },
+  viewCartRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  viewCartText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: FONTS.SemiBold,
+  },
+
+  // Frequently Bought
+  freqSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 8,
+    borderTopColor: '#F2F2F2',
+  },
+  freqTitle: {
+    fontSize: 15,
+    color: Constants.black,
+    fontFamily: FONTS.SemiBold,
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+  freqCard: {
+    width: (Dimensions.get('window').width - 32) / 2,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  freqImgContainer: {
+    paddingTop: 8,
+    paddingBottom: 34,
+    position: 'relative',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+  },
+  freqCardImg: {
+    width: '100%',
+    height: 110,
+  },
+  freqAddBtn: {
     position: 'absolute',
-    bottom: 20,
-    width: '90%',
-    alignSelf: 'center',
-    paddingHorizontal: 20,
+    bottom: 0,
+    right: -8,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Constants.normal_green,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  freqAddBtnTxt: {
+    fontSize: 10,
+    color: Constants.normal_green,
+    fontFamily: FONTS.SemiBold,
+    letterSpacing: 0.3,
+  },
+  freqStepperBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: -8,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Constants.normal_green,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  freqStepperTouch: {
+    padding: 2,
+  },
+  freqStepperQty: {
+    fontSize: 10,
+    color: Constants.normal_green,
+    fontFamily: FONTS.SemiBold,
+    minWidth: 12,
+    textAlign: 'center',
+  },
+  freqInfo: {
+    padding: 7,
+    paddingTop: 6,
+  },
+  freqPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+  },
+  freqPriceTxt: {
+    fontSize: 13,
+    color: Constants.black,
+    fontFamily: FONTS.SemiBold,
+  },
+  freqWeightTxt: {
+    fontSize: 11,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
+  },
+  freqNameTxt: {
+    fontSize: 11,
+    color: Constants.black,
+    fontFamily: FONTS.Regular,
+    lineHeight: 15,
+  },
+  freqRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  freqRatingTxt: {
+    fontSize: 10,
+    color: Constants.black,
+    fontFamily: FONTS.SemiBold,
+  },
+  freqReviewTxt: {
+    fontSize: 10,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
+  },
+  freqDeliveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  freqDeliveryTxt: {
+    fontSize: 10,
+    color: Constants.customgrey,
+    fontFamily: FONTS.Regular,
   },
 });

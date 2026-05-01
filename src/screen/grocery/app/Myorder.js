@@ -224,7 +224,7 @@ const GroceryOrders = () => {
                   <View style={{ marginLeft: 10, flex: 1 }}>
                     <View style={styles.covline}>
                       <Text style={styles.ordtxt1} numberOfLines={2}>{prod?.grocery_name}</Text>
-                      {item?.status === 'Delivered' && <Text style={styles.revtxt} onPress={() => {
+                      <Text style={styles.revtxt} onPress={() => {
                         setModalVisible(true); setselfoodid(prod?.grocery_id?._id);
                         if (prod?.grocery_id?.reviews?.some(r => String(r.userId) === String(user._id))) {
                           setrating(prod?.grocery_id?.reviews.find(r => String(r.userId) === String(user._id))?.rating);
@@ -233,7 +233,7 @@ const GroceryOrders = () => {
                         } else {
                           setalreadyrated(false); setrating(''); setreview('');
                         }
-                      }}>{prod?.grocery_id?.reviews?.some(r => String(r.userId) === String(user._id)) ? t('Show review') : t('Add review')}</Text>}
+                      }}>{prod?.grocery_id?.reviews?.some(r => String(r.userId) === String(user._id)) ? t('Show Review') : t('Add Review')}</Text>
                     </View>
                     <View style={styles.covline}>
                       <Text style={styles.ordtxt2}>{Currency} {item.total}</Text>
@@ -333,6 +333,7 @@ const GroceryOrders = () => {
                   placeholder={t('Review (Optional)')}
                   placeholderTextColor={Constants.customgrey2}
                   numberOfLines={5}
+                  editable={!alreadyrated}
                   multiline={true}
                   value={review}
                   onChangeText={(e) =>
